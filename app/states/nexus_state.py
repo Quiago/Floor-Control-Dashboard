@@ -4,7 +4,7 @@ from typing import TypedDict, List, Optional
 import datetime
 import random
 
-# --- Definición de Tipos de Datos ---
+# --- Tipos de Datos Enriquecidos ---
 
 class ChatMessage(TypedDict):
     role: str
@@ -16,95 +16,100 @@ class WorkflowStep(TypedDict):
     title: str
     status: str
     time: str
-    
+
+# Nuevo: Estructura de Grafo de Conocimiento
 class EquipmentProp(TypedDict):
     temperature: float
     pressure: float
     status: str
     last_maintenance: str
+    # Datos de Ontología / Grafo
+    rul_percentage: int      # Vida Útil Restante
+    production_line: str     # A qué línea pertenece
+    connected_sensors: List[str] # Lista de sensores IoT
+    depends_on: List[str]    # Dependencias (Upstream)
+    affects_to: List[str]    # Impacto (Downstream)
+    product_context: str     # Qué producto está procesando
 
 # --- Estado Principal ---
 
 class NexusState(rx.State):
-    # Variables de UI generales
     active_tab: str = "monitor"
     is_alert_active: bool = False
     simulation_running: bool = False
     
-    # --- ESTADO DE INTERACCIÓN 3D ---
+    # 3D Interaction
     selected_object_name: Optional[str] = None
     selected_object_props: Optional[EquipmentProp] = None
     
-    # Nuevas variables para el Menú Avanzado
-    menu_mode: str = "main"  # Puede ser 'main' (propiedades) o 'actions' (quick actions)
-    is_expanded: bool = False # Controla si estamos en modo "Solo ver equipo"
-    js_command: str = ""      # Canal de comandos hacia Javascript (isolate/restore)
+    # Modes
+    menu_mode: str = "main"
+    is_expanded: bool = False
+    js_command: str = ""
     
-    # Variables de Datos
+    # Data
     chat_input: str = ""
     chat_history: List[ChatMessage] = [
-        {"role": "system", "text": "Nexus AI Online. Waiting for input...", "time": "08:00:00"}
+        {"role": "system", "text": "Nexus Ontology Online. Graph tracking enabled.", "time": "08:00:00"}
     ]
     workflow_steps: List[WorkflowStep] = [
         {"id": "1", "title": "Morning Calibration", "status": "completed", "time": "08:05:00"},
         {"id": "2", "title": "Conveyor Sync", "status": "active", "time": "08:15:00"},
     ]
 
-    # --- EVENTOS (ACTIONS) ---
-
     @rx.event
     def handle_3d_selection(self, object_name: str):
-        """Recibe la selección desde JS"""
-        print(f"🐍 Selección recibida: '{object_name}'")
-
+        """Genera datos ricos simulando una consulta al Grafo de Conocimiento"""
         if not object_name:
-            # Si deseleccionan, reseteamos todo
             self.clear_selection()
             return
             
         self.selected_object_name = object_name
-        self.menu_mode = "main" # Siempre abrir en menú principal
+        self.menu_mode = "main"
         
-        # Datos simulados
+        # Simulamos datos complejos del grafo
+        rul = random.randint(40, 98)
+        
         self.selected_object_props = {
             "temperature": round(random.uniform(45.0, 85.0), 1),
             "pressure": round(random.uniform(100.0, 250.0), 1),
             "status": random.choice(["Optimal", "Warning", "Critical"]),
-            "last_maintenance": datetime.datetime.now().strftime("%Y-%m-%d")
+            "last_maintenance": datetime.datetime.now().strftime("%Y-%m-%d"),
+            
+            # Datos de Ontología
+            "rul_percentage": rul,
+            "production_line": f"Line-{random.choice(['Alpha', 'Beta', 'Gamma'])}",
+            "connected_sensors": [f"Vib-Sens-{random.randint(100,999)}", "Therm-Coupler-A", "Flow-Meter-X"],
+            "depends_on": [f"Feeder-{random.randint(1,5)}", "Power-Unit-Main"],
+            "affects_to": [f"Packager-{random.randint(10,20)}", "Quality-Gate-B"],
+            "product_context": random.choice(["Vaccine Batch #99", "Serum Vials 50ml", "Antibiotic Strips"])
         }
 
     @rx.event
     def clear_selection(self):
-        """Limpia selección y restaura la vista 3D completa"""
         self.selected_object_name = None
         self.selected_object_props = None
         self.menu_mode = "main"
         self.is_expanded = False
-        self.js_command = "restore" # Comanda a JS para mostrar todo de nuevo
+        self.js_command = "restore"
 
     @rx.event
     def set_menu_mode(self, mode: str):
-        """Cambia entre 'main' y 'actions'"""
         self.menu_mode = mode
 
     @rx.event
     def toggle_expand(self):
-        """Activa/Desactiva el aislamiento del equipo en 3D"""
         self.is_expanded = not self.is_expanded
         if self.is_expanded:
-            # Enviamos comando especial a JS: isolate:NombreObjeto
             self.js_command = f"isolate:{self.selected_object_name}"
-            self._add_message(f"Isolating view for {self.selected_object_name}", role="system")
+            self._add_message(f"Focused on {self.selected_object_name}. Retrieving full graph context...", role="system")
         else:
             self.js_command = "restore"
-            self._add_message("Restoring full facility view", role="system")
 
     @rx.event
     def handle_quick_action(self, action: str):
-        """Ejecuta acciones rápidas"""
         target = self.selected_object_name
-        self._add_message(f"Executing '{action}' protocol on {target}...", role="system")
-        
+        self._add_message(f"Executing '{action}' on {target}...", role="system")
         if action == "STOP":
             self.selected_object_props["status"] = "Critical"
         elif action == "REPORT":
@@ -119,10 +124,10 @@ class NexusState(rx.State):
         if self.selected_object_props:
             self.selected_object_props["status"] = "Optimal"
             self.selected_object_props["temperature"] = 45.0
+            self.selected_object_props["rul_percentage"] = 100 # Reset RUL
         self._add_message(f"Maintenance complete.", role="system")
 
-    # --- Helpers ---
-    
+    # Helpers
     def set_tab(self, tab: str): self.active_tab = tab
     def set_chat_input(self, value: str): self.chat_input = value
     def _add_message(self, text: str, role: str = "system"):
@@ -131,7 +136,6 @@ class NexusState(rx.State):
     def _add_workflow(self, title: str, status: str):
         now = datetime.datetime.now().strftime("%H:%M:%S")
         self.workflow_steps.append({"id": str(len(self.workflow_steps)+1), "title": title, "status": status, "time": now})
-
     @rx.event
     def send_message(self):
         if not self.chat_input: return

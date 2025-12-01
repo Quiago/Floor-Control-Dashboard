@@ -59,6 +59,17 @@ def floating_context_menu() -> rx.Component:
         rx.fragment()
     )
 
+def controls_guide() -> rx.Component:
+    """Pequeña guía visual de controles para el usuario"""
+    return rx.hstack(
+        rx.hstack(rx.icon("mouse-pointer-2", size=14), rx.text("Rotate (L-Click)", class_name="text-[10px]")),
+        rx.divider(orientation="vertical", class_name="h-3 bg-gray-600"),
+        rx.hstack(rx.icon("move", size=14), rx.text("Pan (R-Click)", class_name="text-[10px]")),
+        rx.divider(orientation="vertical", class_name="h-3 bg-gray-600"),
+        rx.hstack(rx.icon("zoom-in", size=14), rx.text("Zoom (Scroll)", class_name="text-[10px]")),
+        class_name="absolute top-4 left-4 bg-gray-900/80 backdrop-blur px-3 py-1.5 rounded-full border border-gray-700 text-gray-300 shadow-lg z-40 items-center gap-3 select-none pointer-events-none"
+    )
+
 def main_layout() -> rx.Component:
     return rx.grid(
         # --- COLUMNA IZQUIERDA (80%) ---
@@ -66,7 +77,6 @@ def main_layout() -> rx.Component:
             # 1. VISOR 3D (60%)
             rx.box(
                 rx.html("""
-                    <!-- HE VUELTO A PONER TU ARCHIVO ORIGINAL AQUÍ -->
                     <model-viewer
                         src="/pharmaceutical_manufacturing_machinery.glb"
                         camera-orbit="45deg 55deg 2.5m" 
@@ -81,12 +91,12 @@ def main_layout() -> rx.Component:
                     </model-viewer>
                 """),
                 
-                # Input oculto para el puente JS
                 rx.el.input(
                     id="bridge-input",
                     class_name="hidden",
                     on_change=NexusState.handle_3d_selection
                 ),
+                controls_guide(),
                 
                 floating_context_menu(),
                 
@@ -143,32 +153,36 @@ def main_layout() -> rx.Component:
                 ),
                 class_name="flex-1 w-full p-4 overflow-y-auto"
             ),
-            rx.hstack(
-                rx.input(
-                    placeholder="Command...",
-                    value=NexusState.chat_input,
-                    on_change=NexusState.set_chat_input,
-                    class_name="bg-gray-800 border-gray-700 text-sm"
+                rx.hstack(
+                    rx.input(
+                        placeholder="Command...",
+                        value=NexusState.chat_input,
+                        on_change=NexusState.set_chat_input,
+                        class_name="bg-gray-800 border-gray-700 text-sm",
+                        width="100%"
+                    ),
+                    rx.button(rx.icon("send", size=16), on_click=NexusState.send_message),
+                    class_name="p-3 border-t border-gray-800 w-full bg-gray-900"
                 ),
-                rx.button(rx.icon("send", size=16), on_click=NexusState.send_message),
-                class_name="p-3 border-t border-gray-800 w-full bg-gray-900"
+                class_name="h-full  bg-gray-950 rounded-lg border border-gray-800 overflow-hidden "
             ),
-            class_name="h-full bg-gray-950 rounded-lg border border-gray-800 overflow-hidden"
-        ),
         
         # CONFIGURACIÓN DEL GRID PRINCIPAL
-        grid_template_columns="80% 20%",
-        height="95vh",
+        grid_template_columns="65% 35%",
+        height="100vh", # CORRECCIÓN: 100vh para pantalla completa
         width="100%",
         gap="4",
         class_name="p-4 bg-black"
     )
 
 def index() -> rx.Component:
-    return rx.container(
+    # CORRECCIÓN IMPORTANTE: Cambiamos rx.container por rx.box
+    # rx.container tiene un ancho máximo (max-width) por defecto.
+    # rx.box permite que el contenido se expanda al 100% real.
+    return rx.box(
         main_layout(),
-        fluid=True,
-        class_name="bg-black min-h-screen p-0"
+        class_name="bg-black min-h-screen",
+        width="100%"
     )
 
 app = rx.App(

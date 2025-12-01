@@ -35,7 +35,12 @@ class NexusState(rx.State):
     selected_object_name: Optional[str] = None
     selected_object_props: Optional[EquipmentProp] = None
     
-    # Variables de Datos (Chat y Workflows)
+    # Nuevas variables para el Menú Avanzado
+    menu_mode: str = "main"  # Puede ser 'main' (propiedades) o 'actions' (quick actions)
+    is_expanded: bool = False # Controla si estamos en modo "Solo ver equipo"
+    js_command: str = ""      # Canal de comandos hacia Javascript (isolate/restore)
+    
+    # Variables de Datos
     chat_input: str = ""
     chat_history: List[ChatMessage] = [
         {"role": "system", "text": "Nexus AI Online. Waiting for input...", "time": "08:00:00"}
@@ -49,20 +54,18 @@ class NexusState(rx.State):
 
     @rx.event
     def handle_3d_selection(self, object_name: str):
-        """
-        Recibe el nombre del objeto desde el JS.
-        """
-        # DEBUG: Esto imprimirá en tu terminal de Python
-        print(f"🐍 [PYTHON] Evento recibido desde JS. Objeto: '{object_name}'")
+        """Recibe la selección desde JS"""
+        print(f"🐍 Selección recibida: '{object_name}'")
 
         if not object_name:
-            self.selected_object_name = None
-            self.selected_object_props = None
+            # Si deseleccionan, reseteamos todo
+            self.clear_selection()
             return
             
         self.selected_object_name = object_name
+        self.menu_mode = "main" # Siempre abrir en menú principal
         
-        # Generamos datos aleatorios simulados
+        # Datos simulados
         self.selected_object_props = {
             "temperature": round(random.uniform(45.0, 85.0), 1),
             "pressure": round(random.uniform(100.0, 250.0), 1),
@@ -72,38 +75,62 @@ class NexusState(rx.State):
 
     @rx.event
     def clear_selection(self):
-        """Cierra el menú flotante"""
+        """Limpia selección y restaura la vista 3D completa"""
         self.selected_object_name = None
         self.selected_object_props = None
+        self.menu_mode = "main"
+        self.is_expanded = False
+        self.js_command = "restore" # Comanda a JS para mostrar todo de nuevo
 
     @rx.event
+    def set_menu_mode(self, mode: str):
+        """Cambia entre 'main' y 'actions'"""
+        self.menu_mode = mode
+
+    @rx.event
+    def toggle_expand(self):
+        """Activa/Desactiva el aislamiento del equipo en 3D"""
+        self.is_expanded = not self.is_expanded
+        if self.is_expanded:
+            # Enviamos comando especial a JS: isolate:NombreObjeto
+            self.js_command = f"isolate:{self.selected_object_name}"
+            self._add_message(f"Isolating view for {self.selected_object_name}", role="system")
+        else:
+            self.js_command = "restore"
+            self._add_message("Restoring full facility view", role="system")
+
+    @rx.event
+    def handle_quick_action(self, action: str):
+        """Ejecuta acciones rápidas"""
+        target = self.selected_object_name
+        self._add_message(f"Executing '{action}' protocol on {target}...", role="system")
+        
+        if action == "STOP":
+            self.selected_object_props["status"] = "Critical"
+        elif action == "REPORT":
+            self._add_workflow(f"Gen Report: {target}", "active")
+        
+    @rx.event
     async def execute_maintenance(self):
-        """Simula mantenimiento"""
-        if not self.selected_object_name:
-            return
-        
-        self._add_message(f"Initiating maintenance sequence on {self.selected_object_name}...", role="system")
-        
+        if not self.selected_object_name: return
+        self._add_message(f"Maintenance initiated on {self.selected_object_name}...", role="system")
         yield
         await asyncio.sleep(1.5)
-        
         if self.selected_object_props:
             self.selected_object_props["status"] = "Optimal"
             self.selected_object_props["temperature"] = 45.0
-            
-        self._add_message(f"Maintenance complete. {self.selected_object_name} is stable.", role="system")
+        self._add_message(f"Maintenance complete.", role="system")
 
-    # --- Helpers Standard ---
+    # --- Helpers ---
     
-    def set_tab(self, tab: str):
-        self.active_tab = tab
-
-    def set_chat_input(self, value: str):
-        self.chat_input = value
-
+    def set_tab(self, tab: str): self.active_tab = tab
+    def set_chat_input(self, value: str): self.chat_input = value
     def _add_message(self, text: str, role: str = "system"):
         now = datetime.datetime.now().strftime("%H:%M:%S")
         self.chat_history.append({"role": role, "text": text, "time": now})
+    def _add_workflow(self, title: str, status: str):
+        now = datetime.datetime.now().strftime("%H:%M:%S")
+        self.workflow_steps.append({"id": str(len(self.workflow_steps)+1), "title": title, "status": status, "time": now})
 
     @rx.event
     def send_message(self):

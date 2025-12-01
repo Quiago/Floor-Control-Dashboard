@@ -62,22 +62,21 @@ def floating_context_menu() -> rx.Component:
 def main_layout() -> rx.Component:
     return rx.grid(
         # --- COLUMNA IZQUIERDA (80%) ---
-        # CORRECCIÓN: Usamos rx.grid en lugar de rx.vstack para forzar la altura 60/40
         rx.grid(
             # 1. VISOR 3D (60%)
             rx.box(
                 rx.html("""
+                    <!-- HE VUELTO A PONER TU ARCHIVO ORIGINAL AQUÍ -->
                     <model-viewer
-                        src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
+                        src="/pharmaceutical_manufacturing_machinery.glb"
                         camera-orbit="45deg 55deg 2.5m" 
                         camera-controls autoplay
                         shadow-intensity="1"
                         loading="eager"
-                        /* CORRECCIÓN: Añadido min-height directo al componente web para evitar colapso a 0px */
                         style="width: 100%; height: 100%; min-height: 500px; display: block; background-color: #111827;"
                     >
                          <div slot="poster" style="color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-                             Cargando Modelo...
+                             Cargando Digital Twin...
                         </div>
                     </model-viewer>
                 """),
@@ -117,7 +116,7 @@ def main_layout() -> rx.Component:
             ),
             
             # CONFIGURACIÓN DEL GRID IZQUIERDO
-            rows="60% 40%", # Esto asegura que el 3D siempre tenga espacio vertical
+            rows="60% 40%", 
             gap="4",
             height="100%",
             width="100%"

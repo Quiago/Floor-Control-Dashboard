@@ -1,228 +1,182 @@
 import reflex as rx
 from app.states.nexus_state import NexusState
 
+# --- COMPONENTES UI ---
 
-def chat_message(msg: dict) -> rx.Component:
-    return rx.hstack(
-        rx.text(
-            msg["time"],
-            class_name="text-xs text-gray-500 font-mono min-w-[60px] shrink-0",
-        ),
-        rx.text(
-            msg["role"],
-            class_name=rx.cond(
-                msg["role"] == "system",
-                "text-xs font-bold text-blue-400 uppercase tracking-wide w-16 shrink-0",
-                "text-xs font-bold text-green-400 uppercase tracking-wide w-16 shrink-0",
+def floating_context_menu() -> rx.Component:
+    """Menú flotante sobre el 3D"""
+    return rx.cond(
+        NexusState.selected_object_name,
+        rx.vstack(
+            rx.hstack(
+                rx.icon("box", size=16, class_name="text-orange-400"),
+                rx.text(NexusState.selected_object_name, class_name="font-bold text-white text-sm"),
+                rx.spacer(),
+                rx.button(
+                    rx.icon("x", size=14),
+                    variant="ghost",
+                    size="1",
+                    on_click=NexusState.clear_selection,
+                    class_name="hover:bg-red-500/20 text-gray-400 hover:text-red-400 rounded-full p-1"
+                ),
+                width="100%",
+                align_items="center"
             ),
+            rx.separator(class_name="my-2 bg-gray-700"),
+            rx.grid(
+                rx.vstack(
+                    rx.text("TEMP", class_name="text-[10px] text-gray-400 font-bold"),
+                    rx.text(f"{NexusState.selected_object_props['temperature']}°C", class_name="text-sm font-mono text-white"),
+                    spacing="1"
+                ),
+                rx.vstack(
+                    rx.text("PRESS", class_name="text-[10px] text-gray-400 font-bold"),
+                    rx.text(f"{NexusState.selected_object_props['pressure']}", class_name="text-sm font-mono text-white"),
+                    spacing="1"
+                ),
+                rx.vstack(
+                    rx.text("STATUS", class_name="text-[10px] text-gray-400 font-bold"),
+                    rx.badge(NexusState.selected_object_props['status'], 
+                             color_scheme=rx.cond(NexusState.selected_object_props['status'] == "Optimal", "green", "red"),
+                             size="1"),
+                    spacing="1"
+                ),
+                columns="3",
+                width="100%",
+                gap="2"
+            ),
+            rx.button(
+                "Maintenance",
+                width="100%",
+                size="2",
+                variant="surface",
+                color_scheme="orange",
+                class_name="mt-3",
+                on_click=NexusState.execute_maintenance
+            ),
+            class_name="absolute bottom-6 right-6 bg-gray-900/90 backdrop-blur-md p-4 rounded-xl border border-gray-600 shadow-2xl z-50 w-72 animate-in slide-in-from-bottom-4 fade-in duration-300"
         ),
-        rx.text(msg["text"], class_name="text-sm text-gray-200 flex-1 break-words"),
-        class_name="w-full items-start gap-3 py-1 px-2 hover:bg-gray-800/50 rounded transition-colors",
+        rx.fragment()
     )
 
-
-def monitor_tab() -> rx.Component:
+def main_layout() -> rx.Component:
     return rx.grid(
-        rx.vstack(
+        # --- COLUMNA IZQUIERDA (80%) ---
+        # CORRECCIÓN: Usamos rx.grid en lugar de rx.vstack para forzar la altura 60/40
+        rx.grid(
+            # 1. VISOR 3D (60%)
             rx.box(
                 rx.html("""
                     <model-viewer
-                        src="/pharmaceutical_manufacturing_machinery.glb"
-                        camera-orbit="45deg 55deg 2.5m"  bounds="tight"
-                        alt="Digital Twin of Production Line"
-                        camera-controls
-                        autoplay  style="width: 100%; height: 100%; background-color: #1f2937; border-radius: 0.5rem;"
-                        style="width: 100%; height: 100%; background-color: #1f2937; border-radius: 0.5rem;"
-                    ></model-viewer>
-                    """, class_name="w-full h-full block relative"),
-                rx.el.button(
-                    rx.icon("triangle-alert", class_name="text-white h-6 w-6"),
-                    class_name="absolute top-4 right-4 p-3 rounded-full bg-red-600 transition-opacity duration-300 shadow-lg z-10",
-                    style={"opacity": rx.cond(NexusState.is_alert_active, "1", "0.3")},
+                        src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
+                        camera-orbit="45deg 55deg 2.5m" 
+                        camera-controls autoplay
+                        shadow-intensity="1"
+                        loading="eager"
+                        /* CORRECCIÓN: Añadido min-height directo al componente web para evitar colapso a 0px */
+                        style="width: 100%; height: 100%; min-height: 500px; display: block; background-color: #111827;"
+                    >
+                         <div slot="poster" style="color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                             Cargando Modelo...
+                        </div>
+                    </model-viewer>
+                """),
+                
+                # Input oculto para el puente JS
+                rx.el.input(
+                    id="bridge-input",
+                    class_name="hidden",
+                    on_change=NexusState.handle_3d_selection
                 ),
-                class_name="relative h-[75%] w-full rounded-lg overflow-hidden bg-gray-800 border border-gray-700 shadow-md",
+                
+                floating_context_menu(),
+                
+                class_name="w-full h-full relative rounded-lg overflow-hidden border border-gray-800 bg-gray-900 shadow-lg flex flex-col",
             ),
+            
+            # 2. WORKFLOWS (40%)
             rx.vstack(
                 rx.hstack(
-                    rx.hstack(
-                        rx.icon("bot", size=18, class_name="text-blue-400"),
-                        rx.text(
-                            "Nexus AI Assistant",
-                            class_name="text-sm font-semibold text-white",
-                        ),
-                        class_name="items-center gap-2",
-                    ),
-                    rx.el.button(
-                        rx.hstack(
-                            rx.icon("play", size=12, class_name="text-white"),
-                            rx.text(
-                                "RUN SIMULATION", class_name="text-[10px] font-bold"
-                            ),
-                            class_name="items-center gap-1",
-                        ),
-                        on_click=NexusState.start_simulation,
-                        class_name="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded transition-colors shadow-sm",
-                    ),
-                    class_name="w-full justify-between items-center px-4 py-3 border-b border-gray-700 bg-gray-800 shrink-0",
+                    rx.icon("activity", size=16, class_name="text-blue-500"),
+                    rx.text("Active Workflows", class_name="text-xs font-bold text-gray-400 uppercase tracking-wider"),
+                    class_name="w-full p-3 border-b border-gray-800 bg-gray-900/50"
                 ),
                 rx.vstack(
-                    rx.foreach(NexusState.chat_history, chat_message),
-                    class_name="flex-1 w-full overflow-y-auto p-4 space-y-2 bg-gray-900/50 scroll-smooth",
-                ),
-                rx.hstack(
-                    rx.el.input(
-                        placeholder="Type command...",
-                        on_change=NexusState.set_chat_input,
-                        class_name="flex-1 bg-gray-900 text-white text-sm rounded-md px-4 py-2 outline-none border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-gray-600",
-                        default_value=NexusState.chat_input,
+                    rx.foreach(
+                        NexusState.workflow_steps,
+                        lambda step: rx.hstack(
+                            rx.text(step["title"], class_name="text-sm text-gray-300"),
+                            rx.spacer(),
+                            rx.badge(step["status"], variant="outline"),
+                            class_name="w-full p-2 bg-gray-800/30 rounded border border-gray-700/50"
+                        )
                     ),
-                    rx.el.button(
-                        rx.icon("send-horizontal", size=16, class_name="text-white"),
-                        on_click=NexusState.send_message,
-                        class_name="bg-blue-600 hover:bg-blue-500 p-2.5 rounded-md transition-colors shadow-sm items-center flex justify-center",
-                    ),
-                    class_name="w-full p-3 border-t border-gray-700 bg-gray-800 gap-3 shrink-0",
+                    class_name="w-full p-3 gap-2 overflow-y-auto"
                 ),
-                height="25%",
-                class_name="w-full bg-gray-800 rounded-lg border border-gray-700 shadow-lg overflow-hidden",
+                class_name="w-full h-full bg-gray-900 rounded-lg border border-gray-800 overflow-hidden"
             ),
-            class_name="h-full gap-4",
+            
+            # CONFIGURACIÓN DEL GRID IZQUIERDO
+            rows="60% 40%", # Esto asegura que el 3D siempre tenga espacio vertical
+            gap="4",
+            height="100%",
+            width="100%"
         ),
+        
+        # --- COLUMNA DERECHA (20%) - CHAT ---
         rx.vstack(
             rx.hstack(
-                rx.icon("activity", size=18, class_name="text-blue-500"),
-                rx.text(
-                    "Live Workflows",
-                    class_name="text-sm font-bold text-gray-100 uppercase tracking-wider",
-                ),
-                class_name="w-full items-center gap-2 mb-2 px-1",
+                rx.icon("bot", class_name="text-green-400"),
+                rx.text("Nexus AI", class_name="font-bold text-white"),
+                class_name="p-4 border-b border-gray-800 w-full bg-gray-900"
             ),
             rx.vstack(
                 rx.foreach(
-                    NexusState.workflow_steps,
-                    lambda step: rx.el.div(
-                        rx.hstack(
-                            rx.text(
-                                step["title"],
-                                class_name="font-medium text-gray-200 text-sm",
-                            ),
-                            rx.el.span(
-                                step["status"],
-                                class_name=rx.cond(
-                                    step["status"] == "active",
-                                    "bg-green-500/10 text-green-400 border-green-500/20",
-                                    "bg-gray-700/30 text-gray-500 border-gray-700/30",
-                                )
-                                + " text-[10px] px-2 py-0.5 rounded border uppercase font-bold",
-                            ),
-                            class_name="justify-between items-start w-full gap-2",
-                        ),
-                        rx.hstack(
-                            rx.icon("clock", size=12, class_name="text-gray-600"),
-                            rx.text(
-                                step["time"],
-                                class_name="text-[10px] text-gray-500 font-mono",
-                            ),
-                            class_name="items-center gap-1.5 mt-2",
-                        ),
-                        class_name="bg-gray-800/40 p-3 rounded-lg w-full border border-gray-700 hover:border-gray-600 transition-colors",
-                    ),
+                    NexusState.chat_history,
+                    lambda msg: rx.box(
+                        rx.text(msg["text"], class_name="text-sm text-gray-200"),
+                        class_name=rx.cond(
+                            msg["role"] == "system",
+                            "bg-gray-800 p-2 rounded-lg border-l-2 border-blue-500 mb-2",
+                            "bg-blue-900/30 p-2 rounded-lg border-l-2 border-green-500 mb-2 ml-4"
+                        )
+                    )
                 ),
-                class_name="w-full space-y-2 overflow-y-auto pr-1",
+                class_name="flex-1 w-full p-4 overflow-y-auto"
             ),
-            class_name="h-full bg-gray-900/30 rounded-lg p-3 border border-gray-800/50",
+            rx.hstack(
+                rx.input(
+                    placeholder="Command...",
+                    value=NexusState.chat_input,
+                    on_change=NexusState.set_chat_input,
+                    class_name="bg-gray-800 border-gray-700 text-sm"
+                ),
+                rx.button(rx.icon("send", size=16), on_click=NexusState.send_message),
+                class_name="p-3 border-t border-gray-800 w-full bg-gray-900"
+            ),
+            class_name="h-full bg-gray-950 rounded-lg border border-gray-800 overflow-hidden"
         ),
-        grid_template_columns="3fr 1fr",
+        
+        # CONFIGURACIÓN DEL GRID PRINCIPAL
+        grid_template_columns="80% 20%",
+        height="95vh",
         width="100%",
-        height="90vh",
         gap="4",
+        class_name="p-4 bg-black"
     )
-
-
-def builder_tab() -> rx.Component:
-    return rx.hstack(
-        rx.vstack(
-            rx.text(
-                "Toolbox",
-                class_name="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 px-1",
-            ),
-            rx.el.button(
-                rx.icon("scan-eye", size=16, class_name="mr-2 text-purple-400"),
-                "Add Sensor",
-                class_name="w-full flex items-center text-left px-3 py-2.5 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700 transition-colors border border-gray-700",
-            ),
-            rx.el.button(
-                rx.icon("zap", size=16, class_name="mr-2 text-yellow-400"),
-                "Add Action",
-                class_name="w-full flex items-center text-left px-3 py-2.5 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700 transition-colors border border-gray-700",
-            ),
-            rx.el.button(
-                rx.icon("git-branch", size=16, class_name="mr-2 text-blue-400"),
-                "Add Condition",
-                class_name="w-full flex items-center text-left px-3 py-2.5 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700 transition-colors border border-gray-700",
-            ),
-            class_name="w-64 bg-gray-900/50 h-full p-4 border-r border-gray-800 gap-3",
-        ),
-        rx.box(
-            rx.vstack(
-                rx.icon("layout-template", size=48, class_name="text-gray-800 mb-4"),
-                rx.text(
-                    "Workflow Canvas", class_name="text-gray-600 font-medium text-lg"
-                ),
-                rx.text(
-                    "Drag and drop items from the toolbox to build automation",
-                    class_name="text-gray-700 text-sm",
-                ),
-                class_name="items-center justify-center h-full",
-            ),
-            class_name="flex-1 h-full bg-gray-950 p-8 rounded-lg m-4 border-2 border-dashed border-gray-800/50 flex items-center justify-center",
-        ),
-        class_name="h-[90vh] w-full",
-    )
-
 
 def index() -> rx.Component:
-    return rx.el.main(
-        rx.tabs.root(
-            rx.tabs.list(
-                rx.tabs.trigger(
-                    "Monitor & Control",
-                    value="monitor",
-                    class_name="data-[state=active]:text-blue-400 data-[state=active]:border-b-2 data-[state=active]:border-blue-400 text-gray-400 px-4 py-2 hover:text-gray-200 transition-colors text-sm font-medium",
-                ),
-                rx.tabs.trigger(
-                    "Automation Builder",
-                    value="builder",
-                    class_name="data-[state=active]:text-blue-400 data-[state=active]:border-b-2 data-[state=active]:border-blue-400 text-gray-400 px-4 py-2 hover:text-gray-200 transition-colors text-sm font-medium",
-                ),
-                class_name="mb-6 border-b border-gray-800 flex gap-4",
-            ),
-            rx.tabs.content(
-                monitor_tab(), value="monitor", class_name="w-full outline-none"
-            ),
-            rx.tabs.content(
-                builder_tab(), value="builder", class_name="w-full outline-none"
-            ),
-            value=NexusState.active_tab,
-            on_change=NexusState.set_tab,
-            class_name="w-full max-w-[1600px] mx-auto",
-        ),
-        class_name="min-h-screen bg-gray-950 text-white p-6 font-['Inter'] selection:bg-blue-500/30",
+    return rx.container(
+        main_layout(),
+        fluid=True,
+        class_name="bg-black min-h-screen p-0"
     )
 
-
 app = rx.App(
-    theme=rx.theme(appearance="light"),
+    theme=rx.theme(appearance="dark"),
     head_components=[
-        rx.el.script(
-            type="module",
-            src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js",
-        ),
+        rx.el.script(src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js", type="module"),
         rx.el.script(src="/interaction.js", type="module"),
-        rx.el.link(
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
-            rel="stylesheet",
-        ),
     ],
 )
 app.add_page(index, route="/")

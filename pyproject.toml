@@ -1,0 +1,14 @@
+[project]
+name = "floor-control-dashboard"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "reflex==0.8.20",
+]
+
+[dependency-groups]
+dev = [
+    "pygltflib>=1.16.5",
+]

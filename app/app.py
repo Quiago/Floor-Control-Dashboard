@@ -27,13 +27,14 @@ def monitor_tab() -> rx.Component:
             rx.box(
                 rx.html("""
                     <model-viewer
-                        src="/maquina_optimizada.glb"
+                        src="/pharmaceutical_manufacturing_machinery.glb"
+                        camera-orbit="45deg 55deg 2.5m"  bounds="tight"
                         alt="Digital Twin of Production Line"
-                        auto-rotate
                         camera-controls
+                        autoplay  style="width: 100%; height: 100%; background-color: #1f2937; border-radius: 0.5rem;"
                         style="width: 100%; height: 100%; background-color: #1f2937; border-radius: 0.5rem;"
                     ></model-viewer>
-                    """),
+                    """, class_name="w-full h-full block relative"),
                 rx.el.button(
                     rx.icon("triangle-alert", class_name="text-white h-6 w-6"),
                     class_name="absolute top-4 right-4 p-3 rounded-full bg-red-600 transition-opacity duration-300 shadow-lg z-10",
@@ -217,6 +218,7 @@ app = rx.App(
             type="module",
             src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js",
         ),
+        rx.el.script(src="/interaction.js", type="module"),
         rx.el.link(
             href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
             rel="stylesheet",

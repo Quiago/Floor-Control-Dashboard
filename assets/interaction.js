@@ -14,28 +14,9 @@ function sendToReflex(data) {
     }
 }
 
-// === GLOBAL ===
+// === GLOBAL STATE ===
 let globalModelViewer = null;
-
-// === INIT ===
-window.addEventListener('DOMContentLoaded', () => {
-    log("Initializing...");
-    
-    const checkModelViewer = setInterval(() => {
-        const viewer = document.querySelector("model-viewer");
-        if (viewer) {
-            log("✓ Model Viewer found");
-            clearInterval(checkModelViewer);
-            globalModelViewer = viewer;
-            
-            // Setup immediately (don't wait for load event)
-            setupSmartRaycaster(viewer);
-            setupCommandListener(viewer);
-            log("✓ Raycaster ready");
-            log("✓ Commands ready");
-        }
-    }, 200);
-});
+let isInitialized = false;
 
 // === GET THREE.JS SCENE ===
 function getThreeScene(viewer) {
@@ -51,6 +32,14 @@ function getThreeScene(viewer) {
 
 // === RAYCASTER (Equipment Selection) ===
 function setupSmartRaycaster(viewer) {
+    // Check if already has listener to avoid duplicates
+    if (viewer._hasRaycaster) {
+        log("Raycaster already setup, skipping");
+        return;
+    }
+    
+    viewer._hasRaycaster = true;
+    
     viewer.addEventListener('click', (event) => {
         try {
             const symbols = Object.getOwnPropertySymbols(viewer);
@@ -135,6 +124,13 @@ function setupCommandListener(viewer) {
         return;
     }
     
+    // Check if already has listener to avoid duplicates
+    if (commandInput._hasListener) {
+        log("Command listener already setup, skipping");
+        return;
+    }
+    
+    commandInput._hasListener = true;
     let lastCommand = "";
     
     setInterval(() => {
@@ -165,12 +161,10 @@ function handleCommand(command, viewer) {
         const targetName = command.split(":")[1];
         log(`Isolating: ${targetName}`);
         
-        // Hide everything first
         scene.traverse((child) => {
             if (child.isMesh) child.visible = false;
         });
         
-        // Find target and show it + children
         let targetObj = null;
         scene.traverse((child) => {
             if (child.name === targetName) {
@@ -185,10 +179,74 @@ function handleCommand(command, viewer) {
             log(`✓ Isolated: ${targetName}`);
         } else {
             error(`Target not found: ${targetName}`);
-            // Restore if not found
             scene.traverse((child) => {
                 if (child.isMesh) child.visible = true;
             });
         }
     }
+}
+
+// === INITIALIZATION (SPA-COMPATIBLE) ===
+function initializeModelViewer() {
+    const viewer = document.querySelector("model-viewer");
+    
+    if (!viewer) {
+        return; // Model viewer not in DOM yet
+    }
+    
+    // Check if this viewer is already initialized
+    if (viewer === globalModelViewer && isInitialized) {
+        return; // Already initialized
+    }
+    
+    // New viewer detected or first time
+    log("Model Viewer found - initializing");
+    globalModelViewer = viewer;
+    isInitialized = true;
+    
+    setupSmartRaycaster(viewer);
+    setupCommandListener(viewer);
+    
+    log("✓ Raycaster ready");
+    log("✓ Commands ready");
+}
+
+// === CONTINUOUS CHECK FOR MODEL VIEWER (SPA NAVIGATION SUPPORT) ===
+// This runs continuously to handle SPA navigation where model-viewer
+// gets unmounted and remounted when navigating between pages
+function startContinuousCheck() {
+    setInterval(() => {
+        const viewer = document.querySelector("model-viewer");
+        
+        // If viewer exists but is different from current, reinitialize
+        if (viewer && viewer !== globalModelViewer) {
+            log("New model viewer detected (navigation), reinitializing...");
+            isInitialized = false;
+            initializeModelViewer();
+        }
+        // If viewer disappeared, reset state
+        else if (!viewer && globalModelViewer) {
+            log("Model viewer unmounted");
+            globalModelViewer = null;
+            isInitialized = false;
+        }
+        // If viewer exists and matches, try to initialize if not done
+        else if (viewer && !isInitialized) {
+            initializeModelViewer();
+        }
+    }, 500); // Check every 500ms
+}
+
+// === START ON LOAD ===
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        log("Initializing...");
+        initializeModelViewer();
+        startContinuousCheck();
+    });
+} else {
+    // Document already loaded (happens in SPAs)
+    log("Initializing (already loaded)...");
+    initializeModelViewer();
+    startContinuousCheck();
 }

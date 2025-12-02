@@ -1,5 +1,6 @@
 import reflex as rx
 from app.states.nexus_state import NexusState
+from app.workflow_builder import workflow_builder
 
 # --- RUL CHART ---
 def rul_chart(percentage: int) -> rx.Component:
@@ -139,48 +140,36 @@ def controls_guide() -> rx.Component:
         rx.fragment()
     )
 
-# --- WORKFLOW BUILDER PANEL (SLIDES FROM RIGHT) ---
-def workflow_builder_panel() -> rx.Component:
-    return rx.cond(
-        NexusState.show_workflow_builder,
-        rx.vstack(
+# --- MAIN LAYOUT (NO TABS - SINGLE VIEW) ---
+def monitor_header() -> rx.Component:
+    """Header with navigation to workflow builder"""
+    return rx.hstack(
+        rx.hstack(
+            rx.icon("activity", size=24, class_name="text-blue-400"),
+            rx.heading("Nexus Monitor", size="6", class_name="text-white"),
+            spacing="3",
+            align_items="center"
+        ),
+        rx.spacer(),
+        rx.button(
             rx.hstack(
-                rx.text("WORKFLOW BUILDER", class_name="text-xs font-bold text-white uppercase"),
-                rx.spacer(),
-                rx.button(rx.icon("x", size=14), variant="ghost", size="1", on_click=NexusState.toggle_workflow_builder),
-                class_name="w-full items-center"
-            ),
-            rx.separator(class_name="my-2 bg-gray-700"),
-            rx.vstack(
-                rx.text("TOOLBOX", class_name="text-[10px] text-gray-500 font-bold mb-2"),
-                rx.button(rx.hstack(rx.icon("scan-eye", size=14), rx.text("Sensor")), variant="outline", size="1", width="100%", on_click=lambda: NexusState.add_workflow_node("sensor")),
-                rx.button(rx.hstack(rx.icon("zap", size=14), rx.text("Action")), variant="outline", size="1", width="100%", on_click=lambda: NexusState.add_workflow_node("action")),
-                rx.button(rx.hstack(rx.icon("git-branch", size=14), rx.text("Condition")), variant="outline", size="1", width="100%", on_click=lambda: NexusState.add_workflow_node("condition")),
+                rx.icon("workflow", size=16),
+                rx.text("Workflow Builder"),
                 spacing="2"
             ),
-            rx.separator(class_name="my-2 bg-gray-700"),
-            rx.vstack(
-                rx.text("CANVAS", class_name="text-[10px] text-gray-500 font-bold mb-1"),
-                rx.box(
-                    rx.cond(
-                        NexusState.workflow_nodes.length() > 0,
-                        rx.vstack(rx.foreach(NexusState.workflow_nodes, lambda n: rx.badge(n["label"], variant="soft", size="1")), spacing="1"),
-                        rx.text("Drag nodes here...", class_name="text-gray-600 text-xs")
-                    ),
-                    class_name="bg-gray-900 p-3 rounded border border-dashed border-gray-700 min-h-[200px]"
-                ),
-                width="100%"
-            ),
-            rx.button(rx.hstack(rx.icon("trash-2", size=12), rx.text("Clear")), variant="ghost", size="1", width="100%", on_click=NexusState.clear_workflow_canvas, class_name="text-red-400 mt-2"),
-            class_name="absolute top-4 right-4 bottom-4 w-72 bg-gray-900/95 backdrop-blur-xl p-4 rounded-xl border border-gray-600 shadow-2xl z-40 overflow-y-auto"
+            variant="solid",
+            color_scheme="blue",
+            on_click=rx.redirect("/workflow-builder"),
         ),
-        rx.fragment()
+        class_name="w-full px-4 py-3 border-b border-gray-800 bg-gray-900",
+        align_items="center"
     )
 
-# --- MAIN LAYOUT (NO TABS - SINGLE VIEW) ---
 def index() -> rx.Component:
     return rx.box(
-        rx.grid(
+        rx.vstack(
+            monitor_header(),
+            rx.grid(
             rx.grid(
                 rx.box(
                     rx.html("""
@@ -196,7 +185,6 @@ def index() -> rx.Component:
                     controls_guide(),
                     floating_context_menu(),
                     knowledge_graph_panel(),
-                    workflow_builder_panel(),
                     class_name="w-full h-full relative rounded-lg overflow-hidden border border-gray-800 bg-gray-900"
                 ),
                 rx.vstack(
@@ -204,7 +192,6 @@ def index() -> rx.Component:
                         rx.icon("activity", size=16, class_name="text-blue-500"),
                         rx.text("Workflows", class_name="text-xs font-bold text-gray-400 uppercase"),
                         rx.spacer(),
-                        rx.button(rx.icon("workflow", size=14), variant="ghost", size="1", on_click=NexusState.toggle_workflow_builder, class_name="text-blue-400"),
                         class_name="w-full p-3 border-b border-gray-800 bg-gray-900/50 items-center"
                     ),
                     rx.vstack(rx.foreach(NexusState.workflow_steps, lambda s: rx.hstack(rx.text(s["title"], class_name="text-sm text-gray-300"), rx.spacer(), rx.badge(s["status"], variant="outline"), class_name="w-full p-2 bg-gray-800/30 rounded")), class_name="w-full p-3 gap-2"),
@@ -224,12 +211,14 @@ def index() -> rx.Component:
                     on_submit=NexusState.send_message,
                     class_name="p-3 border-t border-gray-800 w-full"
                 ),
-                class_name="h-full bg-gray-950 rounded-lg border border-gray-800"
+                class_name="h-full bg-gray-950 rounded-lg border border-gray-800",
+                width="100%"
             ),
-            grid_template_columns="65% 35%", height="100vh", gap="4", class_name="p-4"
+            grid_template_columns="65% 35%", height="calc(100vh - 60px)", gap="4", class_name="p-4", width="100%"
         ),
+        spacing="0",
         class_name="bg-black min-h-screen w-full"
-    )
+    ))
 
 app = rx.App(
     theme=rx.theme(appearance="dark"),
@@ -239,3 +228,4 @@ app = rx.App(
     ],
 )
 app.add_page(index, route="/")
+app.add_page(workflow_builder, route="/workflow-builder")

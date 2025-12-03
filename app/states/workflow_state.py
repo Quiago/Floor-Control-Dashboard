@@ -1,95 +1,126 @@
 # app/states/workflow_state.py
 import reflex as rx
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from collections import defaultdict
 from app.extractors.glb_parser import load_equipment_from_glb
 
 
 class WorkflowState(rx.State):
-    """Workflow builder state with equipment from GLB"""
+    """Workflow builder state"""
     
     equipment_library: List[Dict] = []
     nodes: List[Dict[str, Any]] = []
     edges: List[Dict[str, Any]] = []
     
     show_equipment_panel: bool = True
-    
-    @rx.var
-    def equipment_by_category(self) -> List[Dict]:
-        """Group equipment by category - returns list of category dicts"""
-        categories = defaultdict(list)
-        
-        category_map = {
-            'analyzer': {'name': 'Quality Analyzers', 'icon': 'scan'},
-            'robot': {'name': 'Robotic Systems', 'icon': 'box'},
-            'centrifuge': {'name': 'Centrifuges', 'icon': 'circle-dot'},
-            'storage': {'name': 'Storage Units', 'icon': 'package'},
-            'conveyor': {'name': 'Conveyors', 'icon': 'arrow-right'},
-            'other': {'name': 'Other Equipment', 'icon': 'circle'}
-        }
-        
-        for eq in self.equipment_library:
-            eq_type = eq['type'] if eq['type'] in category_map else 'other'
-            categories[eq_type].append(eq)
-        
-        result = []
-        for cat_key in ['analyzer', 'robot', 'centrifuge', 'storage', 'conveyor', 'other']:
-            if cat_key in categories and categories[cat_key]:
-                result.append({
-                    'key': cat_key,
-                    'name': category_map[cat_key]['name'],
-                    'icon': category_map[cat_key]['icon'],
-                    'equipment': categories[cat_key],
-                    'count': len(categories[cat_key])
-                })
-        
-        return result
+    selected_node_id: str = ""
+    config_menu_position: Dict[str, float] = {}
     
     def load_equipment(self):
-        """Load equipment from GLB file"""
         self.equipment_library = load_equipment_from_glb()
     
+    @rx.var
+    def category_definitions(self) -> List[Dict]:
+        """Equipment and action categories"""
+        return [
+            {'key': 'analyzer', 'name': 'Analyzers', 'icon': 'scan', 'type': 'equipment'},
+            {'key': 'robot', 'name': 'Robots', 'icon': 'box', 'type': 'equipment'},
+            {'key': 'centrifuge', 'name': 'Centrifuges', 'icon': 'circle-dot', 'type': 'equipment'},
+            {'key': 'storage', 'name': 'Storage', 'icon': 'package', 'type': 'equipment'},
+            {'key': 'conveyor', 'name': 'Conveyors', 'icon': 'arrow-right', 'type': 'equipment'},
+            {'key': 'whatsapp', 'name': 'WhatsApp', 'icon': 'message-circle', 'type': 'action'},
+            {'key': 'email', 'name': 'Email', 'icon': 'mail', 'type': 'action'},
+            {'key': 'alert', 'name': 'System Alert', 'icon': 'bell', 'type': 'action'}
+        ]
+    
+    @rx.var
+    def equipment_categories(self) -> List[Dict]:
+        return [c for c in self.category_definitions if c['type'] == 'equipment']
+    
+    @rx.var
+    def action_categories(self) -> List[Dict]:
+        return [c for c in self.category_definitions if c['type'] == 'action']
+    
+    @rx.var
+    def selected_node(self) -> Optional[Dict]:
+        if not self.selected_node_id:
+            return None
+        return next((n for n in self.nodes if n['id'] == self.selected_node_id), None)
+    
+    @rx.var
+    def equipment_for_selected_category(self) -> List[Dict]:
+        if not self.selected_node:
+            return []
+        category = self.selected_node['data'].get('category')
+        return [eq for eq in self.equipment_library if eq['type'] == category]
+    
     @rx.event
-    def add_equipment_node(self, equipment_id: str):
-        """Add equipment from library to canvas"""
-        equipment = next((eq for eq in self.equipment_library if eq['id'] == equipment_id), None)
-        if not equipment:
-            return
-        
-        node_id = f"eq_{len(self.nodes) + 1}"
+    def add_category_node(self, category_key: str, is_action: bool):
+        node_id = f"node_{len(self.nodes) + 1}"
         x_offset = (len(self.nodes) % 3) * 250
         y_offset = (len(self.nodes) // 3) * 150
+        
+        category = next((c for c in self.category_definitions if c['key'] == category_key), None)
         
         self.nodes.append({
             'id': node_id,
             'type': 'default',
             'data': {
-                'label': equipment['label'],
-                'equipment_id': equipment['id'],
-                'equipment_type': equipment['type'],
-                'sensors': equipment['sensors']
+                'label': category['name'] if category else category_key,
+                'category': category_key,
+                'is_action': is_action,
+                'configured': False,
+                'equipment_id': None,
+                'config': {}
             },
             'position': {'x': 300 + x_offset, 'y': 100 + y_offset}
         })
     
     @rx.event
-    def add_action_node(self):
-        """Add action node"""
-        node_id = f"action_{len(self.nodes) + 1}"
-        x_offset = (len(self.nodes) % 3) * 250
-        y_offset = (len(self.nodes) // 3) * 150
-        
-        self.nodes.append({
-            'id': node_id,
-            'type': 'output',
-            'data': {'label': 'Send Alert'},
-            'position': {'x': 300 + x_offset, 'y': 100 + y_offset}
-        })
+    def select_node(self, node_id: str):
+        self.selected_node_id = node_id
+    
+    @rx.event
+    def close_config_menu(self):
+        self.selected_node_id = ""
+    
+    @rx.event
+    def configure_equipment_node(self, node_id: str, equipment_id: str):
+        for i, node in enumerate(self.nodes):
+            if node['id'] == node_id:
+                equipment = next((eq for eq in self.equipment_library if eq['id'] == equipment_id), None)
+                if equipment:
+                    self.nodes[i]['data']['equipment_id'] = equipment_id
+                    self.nodes[i]['data']['label'] = equipment['label']
+                    self.nodes[i]['data']['configured'] = True
+                    self.nodes[i]['data']['sensors'] = equipment['sensors']
+                break
+    
+    @rx.event
+    def configure_sensor_threshold(self, node_id: str, sensor_id: str, threshold_low: float, threshold_high: float):
+        for i, node in enumerate(self.nodes):
+            if node['id'] == node_id:
+                if 'thresholds' not in self.nodes[i]['data']['config']:
+                    self.nodes[i]['data']['config']['thresholds'] = {}
+                self.nodes[i]['data']['config']['thresholds'][sensor_id] = {
+                    'low': threshold_low,
+                    'high': threshold_high
+                }
+                break
+    
+    @rx.event
+    def configure_action_node(self, node_id: str, action_type: str, config: Dict):
+        for i, node in enumerate(self.nodes):
+            if node['id'] == node_id:
+                self.nodes[i]['data']['configured'] = True
+                self.nodes[i]['data']['config'] = config
+                break
     
     @rx.event
     def clear_workflow(self):
         self.nodes = []
         self.edges = []
+        self.selected_node_id = ""
     
     @rx.event
     def on_connect(self, new_edge):
@@ -109,6 +140,8 @@ class WorkflowState(rx.State):
         for change in node_changes:
             if change["type"] == "position" and change.get("dragging"):
                 map_id_to_new_position[change["id"]] = change["position"]
+            elif change["type"] == "select" and change.get("selected"):
+                self.selected_node_id = change["id"]
         
         for i, node in enumerate(self.nodes):
             if node["id"] in map_id_to_new_position:

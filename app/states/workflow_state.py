@@ -1,33 +1,39 @@
 # app/states/workflow_state.py
 import reflex as rx
 from typing import List, Dict, Any, Optional
-from collections import defaultdict
-from app.extractors.glb_parser import load_equipment_from_glb
-
+import random
 
 class WorkflowState(rx.State):
     """Workflow builder state"""
     
-    equipment_library: List[Dict] = []
+    # --- ESTADO DE DATOS ---
     nodes: List[Dict[str, Any]] = []
     edges: List[Dict[str, Any]] = []
     
+    # Mock de librería de equipos
+    equipment_library: List[Dict] = [
+        {'id': 'eq1', 'label': 'Robot Arm V1', 'type': 'robot', 'sensors': []}
+    ]
+
+    # --- ESTADO DE DRAG AND DROP ---
+    dragged_type: str = ""
+    dragged_is_action: bool = False
+    
+    # UI State
     show_equipment_panel: bool = True
     selected_node_id: str = ""
-    config_menu_position: Dict[str, float] = {}
     
     def load_equipment(self):
-        self.equipment_library = load_equipment_from_glb()
+        print("DEBUG: Loaded initial equipment")
     
+    # --- DEFINICIONES ---
     @rx.var
     def category_definitions(self) -> List[Dict]:
-        """Equipment and action categories"""
         return [
             {'key': 'analyzer', 'name': 'Analyzers', 'icon': 'scan', 'type': 'equipment'},
             {'key': 'robot', 'name': 'Robots', 'icon': 'box', 'type': 'equipment'},
             {'key': 'centrifuge', 'name': 'Centrifuges', 'icon': 'circle-dot', 'type': 'equipment'},
             {'key': 'storage', 'name': 'Storage', 'icon': 'package', 'type': 'equipment'},
-            {'key': 'conveyor', 'name': 'Conveyors', 'icon': 'arrow-right', 'type': 'equipment'},
             {'key': 'whatsapp', 'name': 'WhatsApp', 'icon': 'message-circle', 'type': 'action'},
             {'key': 'email', 'name': 'Email', 'icon': 'mail', 'type': 'action'},
             {'key': 'alert', 'name': 'System Alert', 'icon': 'bell', 'type': 'action'}
@@ -46,82 +52,93 @@ class WorkflowState(rx.State):
         if not self.selected_node_id:
             return None
         return next((n for n in self.nodes if n['id'] == self.selected_node_id), None)
-    
+
     @rx.var
     def equipment_for_selected_category(self) -> List[Dict]:
         if not self.selected_node:
             return []
         category = self.selected_node['data'].get('category')
         return [eq for eq in self.equipment_library if eq['type'] == category]
-    
+
+    # --- MANEJADORES DE DRAG AND DROP ---
+
     @rx.event
-    def add_category_node(self, category_key: str, is_action: bool):
-        node_id = f"node_{len(self.nodes) + 1}"
-        x_offset = (len(self.nodes) % 3) * 250
-        y_offset = (len(self.nodes) // 3) * 150
+    def start_drag(self, category_key: str, is_action: bool):
+        """Se llama cuando haces click/hold en el botón del menú"""
+        print(f"DEBUG: Start Drag -> {category_key}")
+        self.dragged_type = category_key
+        self.dragged_is_action = is_action
+
+    @rx.event
+    def handle_drop(self, x: float, y: float):
+        """Se llama cuando sueltas el mouse en CUALQUIER lugar del canvas"""
+        if not self.dragged_type:
+            return
         
-        category = next((c for c in self.category_definitions if c['key'] == category_key), None)
-        
-        self.nodes.append({
-            'id': node_id,
+        print(f"DEBUG: Dropping {self.dragged_type} at ({x}, {y})")
+
+        # Ajuste de coordenadas (Offset del sidebar y header)
+        # Ajusta estos valores si el mouse no cuadra con el nodo
+        drop_x = x - 300 
+        drop_y = y - 80 
+
+        new_id = f"node_{random.randint(1000, 9999)}"
+        category = next((c for c in self.category_definitions if c['key'] == self.dragged_type), None)
+        label = category['name'] if category else self.dragged_type
+
+        new_node = {
+            'id': new_id,
             'type': 'default',
             'data': {
-                'label': category['name'] if category else category_key,
-                'category': category_key,
-                'is_action': is_action,
+                'label': label,
+                'category': self.dragged_type,
+                'is_action': self.dragged_is_action,
                 'configured': False,
-                'equipment_id': None,
                 'config': {}
             },
-            'position': {'x': 300 + x_offset, 'y': 100 + y_offset}
-        })
-    
+            'position': {'x': drop_x, 'y': drop_y},
+            'draggable': True
+        }
+        
+        self.nodes.append(new_node)
+        
+        # Limpiar estado
+        self.dragged_type = ""
+
+    # --- MANEJADORES DE REACT FLOW ---
+
     @rx.event
-    def select_node(self, node_id: str):
-        self.selected_node_id = node_id
-    
-    @rx.event
-    def close_config_menu(self):
-        self.selected_node_id = ""
-    
-    @rx.event
-    def configure_equipment_node(self, node_id: str, equipment_id: str):
-        for i, node in enumerate(self.nodes):
-            if node['id'] == node_id:
-                equipment = next((eq for eq in self.equipment_library if eq['id'] == equipment_id), None)
-                if equipment:
-                    self.nodes[i]['data']['equipment_id'] = equipment_id
-                    self.nodes[i]['data']['label'] = equipment['label']
-                    self.nodes[i]['data']['configured'] = True
-                    self.nodes[i]['data']['sensors'] = equipment['sensors']
-                break
-    
-    @rx.event
-    def configure_sensor_threshold(self, node_id: str, sensor_id: str, threshold_low: float, threshold_high: float):
-        for i, node in enumerate(self.nodes):
-            if node['id'] == node_id:
-                if 'thresholds' not in self.nodes[i]['data']['config']:
-                    self.nodes[i]['data']['config']['thresholds'] = {}
-                self.nodes[i]['data']['config']['thresholds'][sensor_id] = {
-                    'low': threshold_low,
-                    'high': threshold_high
-                }
-                break
-    
-    @rx.event
-    def configure_action_node(self, node_id: str, action_type: str, config: Dict):
-        for i, node in enumerate(self.nodes):
-            if node['id'] == node_id:
-                self.nodes[i]['data']['configured'] = True
-                self.nodes[i]['data']['config'] = config
-                break
-    
-    @rx.event
-    def clear_workflow(self):
-        self.nodes = []
-        self.edges = []
-        self.selected_node_id = ""
-    
+    def on_nodes_change(self, node_changes: List[Dict[str, Any]]):
+        """Maneja movimientos y selección de nodos sin borrarlos"""
+        map_id_to_new_position = {}
+        ids_to_remove = []
+
+        for change in node_changes:
+            if change["type"] == "position" and "position" in change and change.get("dragging"):
+                if change["position"]:
+                    map_id_to_new_position[change["id"]] = change["position"]
+            elif change["type"] == "select" and change.get("selected"):
+                self.selected_node_id = change["id"]
+            elif change["type"] == "remove":
+                ids_to_remove.append(change["id"])
+
+        if not map_id_to_new_position and not ids_to_remove:
+            return
+
+        new_nodes_list = []
+        for node in self.nodes:
+            if node["id"] in ids_to_remove:
+                continue
+            
+            if node["id"] in map_id_to_new_position:
+                updated_node = node.copy()
+                updated_node["position"] = map_id_to_new_position[node["id"]]
+                new_nodes_list.append(updated_node)
+            else:
+                new_nodes_list.append(node)
+        
+        self.nodes = new_nodes_list
+
     @rx.event
     def on_connect(self, new_edge):
         edge_id = f"e{new_edge['source']}-{new_edge['target']}"
@@ -132,27 +149,28 @@ class WorkflowState(rx.State):
             "target": new_edge["target"],
             "animated": True
         })
-    
-    @rx.event
-    def on_nodes_change(self, node_changes: List[Dict[str, Any]]):
-        map_id_to_new_position = defaultdict(dict)
         
-        for change in node_changes:
-            if change["type"] == "position" and change.get("dragging"):
-                map_id_to_new_position[change["id"]] = change["position"]
-            elif change["type"] == "select" and change.get("selected"):
-                self.selected_node_id = change["id"]
-        
-        for i, node in enumerate(self.nodes):
-            if node["id"] in map_id_to_new_position:
-                self.nodes[i]["position"] = map_id_to_new_position[node["id"]]
-    
     @rx.event
     def on_edges_change(self, edge_changes: List[Dict[str, Any]]):
         for change in edge_changes:
             if change["type"] == "remove":
                 self.edges = [e for e in self.edges if e["id"] != change["id"]]
-    
+
+    # --- UI HELPERS ---
     @rx.event
     def toggle_equipment_panel(self):
         self.show_equipment_panel = not self.show_equipment_panel
+
+    @rx.event
+    def clear_workflow(self):
+        self.nodes = []
+        self.edges = []
+        self.selected_node_id = ""
+
+    @rx.event
+    def close_config_menu(self):
+        self.selected_node_id = ""
+        
+    @rx.event
+    def configure_equipment_node(self, node_id: str, equipment_id: str):
+        pass

@@ -1,48 +1,61 @@
 # app/reactflow.py
+"""
+ReactFlow wrapper for Reflex - CONTROLLED MODE.
+
+IMPORTANT: Using reactflow@11.10.1 because version 11.11.3+ has a bug
+where nodes disappear when position is updated in controlled mode.
+See: https://github.com/xyflow/xyflow/issues/4287
+"""
 import reflex as rx
 from typing import Any, Dict, List
 
+
 class ReactFlowLib(rx.Component):
-    """Componente base para la librería reactflow."""
-    library = "reactflow"
-    lib_dependencies = ["reactflow@11.11.0"]
+    """Base component for ReactFlow library."""
+    # Pin to 11.10.1 - later versions have the disappearing nodes bug
+    library = "reactflow@11.10.1"
     
     def _get_custom_code(self) -> str:
+        """Import ReactFlow's CSS styles"""
         return """import 'reactflow/dist/style.css';"""
 
+
 class ReactFlow(ReactFlowLib):
+    """Main ReactFlow component - controlled mode"""
+    
     tag = "ReactFlow"
     
-    # Props de datos
+    # CONTROLLED mode props
     nodes: rx.Var[List[Dict[str, Any]]]
     edges: rx.Var[List[Dict[str, Any]]]
+    
+    # View props
     fit_view: rx.Var[bool]
     
-    # Props de configuración
+    # Interaction props
     nodes_draggable: rx.Var[bool]
     nodes_connectable: rx.Var[bool]
-    nodes_focusable: rx.Var[bool]
     
-    # Eventos estándar (Serializamos el evento para evitar errores de ciclo)
+    # Event handlers
     on_nodes_change: rx.EventHandler[lambda e0: [e0]]
     on_edges_change: rx.EventHandler[lambda e0: [e0]]
     on_connect: rx.EventHandler[lambda e0: [e0]]
-    
-    # Eventos de panel (Opcionales, pero los definimos seguros por si acaso)
-    on_pane_click: rx.EventHandler[lambda e: [e.clientX, e.clientY]]
-    on_pane_mouse_move: rx.EventHandler[lambda e: [e.clientX, e.clientY]]
+
 
 class Background(ReactFlowLib):
+    """Background component for ReactFlow"""
     tag = "Background"
-    color: rx.Var[str] = "#374151"
-    gap: rx.Var[int] = 16
-    size: rx.Var[int] = 1
-    variant: rx.Var[str] = "dots"
+    color: rx.Var[str]
+    gap: rx.Var[int]
+    size: rx.Var[int]
+    variant: rx.Var[str]
+
 
 class Controls(ReactFlowLib):
+    """Controls component for ReactFlow"""
     tag = "Controls"
 
-# Instancias
+
 react_flow = ReactFlow.create
 background = Background.create
 controls = Controls.create

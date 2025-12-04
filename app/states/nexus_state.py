@@ -121,11 +121,11 @@ class NexusState(rx.State):
         
     def _add_message(self, text: str, role: str = "system"):
         now = datetime.datetime.now().strftime("%H:%M:%S")
-        self.chat_history.append({"role": role, "text": text, "time": now})
+        self.chat_history = [*self.chat_history, {"role": role, "text": text, "time": now}]
         
     def _add_workflow(self, title: str, status: str):
         now = datetime.datetime.now().strftime("%H:%M:%S")
-        self.workflow_steps.append({"id": str(len(self.workflow_steps)+1), "title": title, "status": status, "time": now})
+        self.workflow_steps = [*self.workflow_steps, {"id": str(len(self.workflow_steps)+1), "title": title, "status": status, "time": now}]
         
     @rx.event
     def send_message(self):
@@ -137,12 +137,13 @@ class NexusState(rx.State):
     @rx.event
     def add_workflow_node(self, node_type: str):
         node_id = f"node_{len(self.workflow_nodes) + 1}"
-        self.workflow_nodes.append({
+        self.workflow_nodes = [*self.workflow_nodes, {
             "id": node_id,
             "type": node_type,
             "label": f"{node_type.title()} {len(self.workflow_nodes) + 1}"
-        })
+        }]
         
     @rx.event
     def clear_workflow_canvas(self):
         self.workflow_nodes = []
+

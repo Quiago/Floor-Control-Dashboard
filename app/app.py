@@ -1,6 +1,8 @@
 import reflex as rx
 from app.states.nexus_state import NexusState
 from app.workflow_builder import workflow_builder
+from app.workflow_builder import live_sensor_dashboard
+from app.states.workflow_state import WorkflowState
 
 # Initialize data directory for SQLite
 from pathlib import Path
@@ -105,6 +107,11 @@ def actions_view() -> rx.Component:
     return rx.vstack(
         rx.text("ACTIONS", class_name="text-[10px] text-gray-500 font-bold mb-1"),
         rx.grid(
+            rx.button(
+                rx.vstack(rx.icon("git-branch-plus", size=18), rx.text("New Workflow", size="1")),
+                variant="outline", class_name="h-16 text-blue-400",
+                on_click=NexusState.create_workflow_for_selection
+            ),
             rx.button(rx.vstack(rx.icon("send", size=18), rx.text("Send", size="1")), variant="outline", class_name="h-16", on_click=lambda: NexusState.handle_quick_action("SEND")),
             rx.button(rx.vstack(rx.icon("file-text", size=18), rx.text("Report", size="1")), variant="outline", class_name="h-16", on_click=lambda: NexusState.handle_quick_action("REPORT")),
             rx.button(rx.vstack(rx.icon("octagon", size=18), rx.text("STOP", size="1")), variant="outline", class_name="h-16 text-red-400", on_click=lambda: NexusState.handle_quick_action("STOP")),
@@ -185,22 +192,61 @@ def index() -> rx.Component:
                         </model-viewer>
                     """),
                     rx.el.input(id="bridge-input", class_name="hidden", on_change=NexusState.handle_3d_selection),
-                    rx.el.input(id="command-input", class_name="hidden", value=NexusState.js_command),
+
+                    # LOGIC MOVED TO FRONTEND TO AVOID SERIALIZATION ERRORS
+                    rx.el.input(
+                        id="command-input",
+                        class_name="hidden",
+                        read_only=True,
+                        value=rx.cond(
+                            WorkflowState.latest_alert_equipment != "",
+                            "alert:" + WorkflowState.latest_alert_equipment,
+                            NexusState.js_command
+                        )
+                    ),
                     controls_guide(),
                     floating_context_menu(),
                     knowledge_graph_panel(),
                     class_name="w-full h-full relative rounded-lg overflow-hidden border border-gray-800 bg-gray-900"
                 ),
+                # --- PANEL INFERIOR IZQUIERDO MEJORADO ---
                 rx.vstack(
                     rx.hstack(
                         rx.icon("activity", size=16, class_name="text-blue-500"),
-                        rx.text("Workflows", class_name="text-xs font-bold text-gray-400 uppercase"),
+                        rx.text("Live Monitor", class_name="text-xs font-bold text-gray-400 uppercase"),
                         rx.spacer(),
+                        rx.cond(
+                            WorkflowState.simulation_running,
+                            rx.badge("SIMULATION ON", color_scheme="green", variant="solid", size="1"),
+                            rx.badge("MONITORING", color_scheme="gray", variant="outline", size="1")
+                        ),
                         class_name="w-full p-3 border-b border-gray-800 bg-gray-900/50 items-center"
                     ),
-                    rx.vstack(rx.foreach(NexusState.workflow_steps, lambda s: rx.hstack(rx.text(s["title"], class_name="text-sm text-gray-300"), rx.spacer(), rx.badge(s["status"], variant="outline"), class_name="w-full p-2 bg-gray-800/30 rounded")), class_name="w-full p-3 gap-2"),
-                    class_name="w-full h-full bg-gray-900 rounded-lg border border-gray-800"
+
+                    # 1. Dashboard de Sensores (Solo visible si corre simulación)
+                    live_sensor_dashboard(),
+
+                    # 2. Feed de Alertas (Siempre visible)
+                    rx.vstack(
+                        rx.text("Alert Stream", class_name="text-[10px] font-bold text-gray-500 uppercase px-2 pt-2"),
+                        rx.vstack(
+                            rx.foreach(
+                                WorkflowState.alert_feed,
+                                lambda a: rx.hstack(
+                                    rx.box(class_name=rx.cond(a['severity']=='critical', "w-1 h-full bg-red-500", "w-1 h-full bg-yellow-500")),
+                                    rx.text(f"{a['equipment']}: {a['sensor']} > {a['threshold']}", class_name="text-xs text-gray-300"),
+                                    rx.spacer(),
+                                    rx.text(a['timestamp'], class_name="text-[10px] text-gray-600 font-mono"),
+                                    class_name="w-full bg-gray-800/30 p-2 rounded border border-gray-700/30 items-center"
+                                )
+                            ),
+                            class_name="flex-1 overflow-y-auto w-full p-2 space-y-1 max-h-[150px]"
+                        ),
+                        width="100%", spacing="2"
+                    ),
+                    class_name="w-full h-full bg-gray-900 rounded-lg border border-gray-800 overflow-hidden"
                 ),
+                # -------------------------------------------
                 rows="60% 40%", gap="4", height="100%"
             ),
             rx.vstack(
@@ -220,9 +266,12 @@ def index() -> rx.Component:
             ),
             grid_template_columns="65% 35%", height="calc(100vh - 60px)", gap="4", class_name="p-4", width="100%"
         ),
-        spacing="0",
-        class_name="bg-black min-h-screen w-full"
-    ))
+            spacing="0",
+            class_name="bg-black min-h-screen w-full"
+        ),
+        # CARGA INICIAL CRÍTICA
+        on_mount=WorkflowState.load_equipment
+    )
 
 app = rx.App(
     theme=rx.theme(appearance="dark"),

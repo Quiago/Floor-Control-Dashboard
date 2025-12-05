@@ -94,25 +94,31 @@ function findMeaningfulGroup(obj) {
     return findMeaningfulGroup(obj.parent);
 }
 
-function flashHierarchy(group) {
+function flashHierarchy(group, colorHex = 0xffaa00, duration = 600) {
     group.traverse((child) => {
-        if (child.isMesh && child.material) flashMesh(child);
+        if (child.isMesh && child.material) flashMesh(child, colorHex, duration);
     });
 }
 
-function flashMesh(mesh) {
+function flashMesh(mesh, colorHex, duration) {
     if (mesh.userData.isFlashing) return;
     mesh.userData.isFlashing = true;
+
     const originalMaterial = mesh.material;
+    
+    // Crear material de flash con el color solicitado
     const flashMaterial = originalMaterial.clone();
-    flashMaterial.color.setHex(0xffaa00);
-    flashMaterial.emissive.setHex(0x331100);
+    flashMaterial.color.setHex(colorHex);
+    // Añadir un poco de emisivo para que brille
+    flashMaterial.emissive.setHex(0x220000); 
+    
     mesh.material = flashMaterial;
+
     setTimeout(() => {
         mesh.material = originalMaterial;
         if (flashMaterial) flashMaterial.dispose();
         mesh.userData.isFlashing = false;
-    }, 600);
+    }, duration);
 }
 
 // === COMMAND LISTENER (PYTHON -> JS) ===
@@ -146,46 +152,51 @@ function handleCommand(command, viewer) {
     log(`CMD received: ${command}`);
     
     const scene = getThreeScene(viewer);
-    if (!scene) {
-        error("Cannot access Three.js scene");
-        return;
-    }
+    if (!scene) return;
     
+    // 1. COMANDO DE ALERTA (Flash Rojo)
+    if (command.startsWith("alert:")) {
+        const targetName = command.split(":")[1];
+        if (!targetName) return;
+
+        let targetObj = null;
+        scene.traverse((child) => {
+            if (child.name === targetName) targetObj = child;
+        });
+
+        if (targetObj) {
+            log(`🚨 ALARMA VISUAL: ${targetName}`);
+            // Pasamos Color Rojo (0xff0000) y duración larga (2000ms)
+            flashHierarchy(targetObj, 0xff0000, 2000); 
+        }
+        return; // Detenemos aquí para no procesar otros comandos
+    }
+
+    // 2. COMANDO RESTORE
     if (command === "restore") {
         scene.traverse((child) => {
             if (child.isMesh) child.visible = true;
         });
-        log("✓ View restored");
     } 
+    // 3. COMANDO ISOLATE
     else if (command.startsWith("isolate:")) {
         const targetName = command.split(":")[1];
-        log(`Isolating: ${targetName}`);
-        
         scene.traverse((child) => {
             if (child.isMesh) child.visible = false;
         });
         
         let targetObj = null;
         scene.traverse((child) => {
-            if (child.name === targetName) {
-                targetObj = child;
-            }
+            if (child.name === targetName) targetObj = child;
         });
         
         if (targetObj) {
             targetObj.traverse((child) => {
                 if (child.isMesh) child.visible = true;
             });
-            log(`✓ Isolated: ${targetName}`);
-        } else {
-            error(`Target not found: ${targetName}`);
-            scene.traverse((child) => {
-                if (child.isMesh) child.visible = true;
-            });
         }
     }
 }
-
 // === INITIALIZATION (SPA-COMPATIBLE) ===
 function initializeModelViewer() {
     const viewer = document.querySelector("model-viewer");

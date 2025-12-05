@@ -9,7 +9,10 @@ import reflex as rx
 from typing import List, Dict, Any, Optional
 import random
 import uuid
+import asyncio
 from datetime import datetime
+from app.extractors.glb_parser import load_equipment_from_glb
+
 
 # Import services (lazy import to avoid circular deps)
 def get_db():
@@ -57,7 +60,10 @@ class WorkflowState(rx.State):
     # Workflow list for Open dialog
     saved_workflows: List[Dict] = []
     show_workflow_list: bool = False
-    
+
+    # --- NUEVO: LISTA DE WORKFLOWS ACTIVOS (Para el Monitor) ---
+    active_workflows_list: List[Dict] = []
+
     # ===========================================
     # NEW: NODE CONFIGURATION STATE
     # ===========================================
@@ -108,10 +114,23 @@ class WorkflowState(rx.State):
     toast_message: str = ""
     toast_type: str = "info"  # info, success, warning, error
     show_toast: bool = False
+
+    # ===========================================
+    # NEW EQUIPMENT VARIABLES
+    # ===========================================
+
+    # Nueva variable para la lista de equipos reales del 3D
+    available_equipment: List[Dict] = []
+    
+    # Variable para guardar el ID específico seleccionado en el nodo
+    config_specific_equipment_id: str = ""
+
+    latest_alert_equipment: str = ""
     
     # ===========================================
     # DEFINITIONS (Enhanced)
     # ===========================================
+    
     
     @rx.var
     def category_definitions(self) -> List[Dict]:
@@ -193,6 +212,90 @@ class WorkflowState(rx.State):
     @rx.var
     def edge_count(self) -> int:
         return len(self.edges)
+    
+    # ===========================================
+    # EVENTS
+    # ===========================================
+    
+    @rx.event
+    def load_equipment(self):
+        """Se ejecuta al inicio. Carga TODO: Alertas, Equipos del 3D y Workflows activos."""
+        self._load_recent_alerts()
+        self.load_equipment_list()
+        self._load_active_workflows()
+
+    @rx.event
+    def load_equipment_list(self):
+        """Carga la lista real de equipos desde el GLB"""
+        data = load_equipment_from_glb()
+        self.available_equipment = data
+
+    def _load_active_workflows(self):
+        """Carga workflows activos para el monitor"""
+        try:
+            db = get_db()
+            workflows = db.get_all_workflows(status="active")
+            self.active_workflows_list = [
+                {
+                    'id': w['id'],
+                    'title': w['name'],
+                    'status': 'active',
+                    'updated_at': w.get('updated_at', '')[:10]
+                }
+                for w in workflows
+            ]
+        except Exception as e:
+            print(f"Error loading workflows: {e}")
+            self.active_workflows_list = []
+
+    @rx.event
+    def prepare_workflow_for_equipment(self, equipment_name: str):
+        """Crea un workflow nuevo para el equipo seleccionado desde el 3D."""
+        self.new_workflow()
+        self.current_workflow_name = f"Auto: {equipment_name}"
+
+        # Generar nodo
+        self._node_counter += 1
+        node_id = f"node_{self._node_counter}"
+
+        # Intentar adivinar la categoría por el nombre
+        category = 'equipment'
+        for cat in self.category_definitions:
+            if cat['key'] in equipment_name.lower():
+                category = cat['key']
+                break
+
+        new_node = {
+            'id': node_id,
+            'type': 'default',
+            'position': {'x': 250, 'y': 200},
+            'data': {
+                'label': equipment_name,
+                'category': category,
+                'configured': True,
+                'config': {'specific_equipment_id': equipment_name}
+            },
+            'style': {
+                'background': '#1f2937',
+                'color': 'white',
+                'border': '2px solid #6b7280',
+                'borderRadius': '8px',
+                'padding': '10px',
+                'minWidth': '150px',
+                'textAlign': 'center'
+            }
+        }
+        self.nodes.append(new_node)
+
+        # Configurar UI para edición inmediata
+        self.selected_node_id = node_id
+        self.selected_node_category = category
+        self.config_specific_equipment_id = equipment_name
+        self.show_config_panel = True
+
+    @rx.event
+    def set_config_specific_equipment_id(self, value: str):
+        self.config_specific_equipment_id = value
     
     # ===========================================
     # DRAG AND DROP (PRESERVED FROM WORKING VERSION)
@@ -407,7 +510,8 @@ class WorkflowState(rx.State):
     def _load_node_config(self, node: Dict):
         """Load existing configuration into form."""
         config = node.get('data', {}).get('config', {})
-        
+        self.config_specific_equipment_id = config.get('specific_equipment_id', '')
+
         if not config:
             self._reset_config_form()
             return
@@ -495,6 +599,7 @@ class WorkflowState(rx.State):
                 'threshold': threshold,
                 'threshold_max': threshold_max,
                 'severity': self.config_severity,
+                'specific_equipment_id': self.config_specific_equipment_id,
                 'equipment_id': self.selected_node_id,
             }
         
@@ -567,6 +672,7 @@ class WorkflowState(rx.State):
                 status=self.current_workflow_status
             )
             self._show_toast(f"Workflow '{self.current_workflow_name}' saved!", "success")
+            self._load_active_workflows()
         except Exception as e:
             print(f"Database error: {e}")
             self._show_toast("Failed to save workflow", "error")
@@ -716,14 +822,9 @@ class WorkflowState(rx.State):
         self.test_mode = False
     
     # ===========================================
-    # EQUIPMENT LOADING
+    # EQUIPMENT LOADING (LEGACY - NOW HANDLED IN load_equipment)
     # ===========================================
-    
-    @rx.event
-    def load_equipment(self):
-        """Load equipment on page mount."""
-        self._load_recent_alerts()
-    
+
     def _load_recent_alerts(self):
         """Load recent alerts from database."""
         try:
@@ -917,6 +1018,10 @@ class WorkflowState(rx.State):
             )
             
             if triggered:
+                specific_id = node['data'].get('config', {}).get('specific_equipment_id')
+                if specific_id:
+                    self.latest_alert_equipment = specific_id
+                    
                 connected_ids = adjacency.get(node['id'], [])
                 
                 for action_id in connected_ids:
@@ -1089,3 +1194,26 @@ class WorkflowState(rx.State):
     @rx.event
     def toggle_equipment_panel(self):
         self.show_equipment_panel = not self.show_equipment_panel
+    
+    @rx.event
+    def check_url_params(self):
+        """Se ejecuta al montar la página del builder"""
+        args = self.router.page.params
+        target = args.get("target")
+        if target:
+            # Lógica para añadir automáticamente el nodo al canvas
+            self.add_node_for_target(target)
+
+    def add_node_for_target(self, target_name: str):
+        # Crear nodo automáticamente en el centro
+        new_node = {
+            'id': f"node_auto_{self._node_counter}",
+            'type': 'default',
+            'data': {
+                'label': target_name, 
+                'category': 'equipment', # Tendrías que inferir el tipo basándote en el nombre
+                'config': {'specific_equipment_id': target_name}
+            },
+            # ... estilos ...
+        }
+        self.nodes.append(new_node)

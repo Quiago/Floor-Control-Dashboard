@@ -73,8 +73,8 @@ def workflow_header() -> rx.Component:
                         ),
                         size="1"
                     ),
-                    rx.text(f"{WorkflowState.node_count} nodes", class_name="text-xs text-gray-500"),
-                    rx.text(f"{WorkflowState.edge_count} connections", class_name="text-xs text-gray-500"),
+                    rx.text(f"{WorkflowState.node_count} nodes", class_name="text-xs text-white-500"),
+                    rx.text(f"{WorkflowState.edge_count} connections", class_name="text-xs text-white-500"),
                     spacing="2"
                 ),
                 spacing="0",
@@ -169,7 +169,7 @@ def equipment_panel() -> rx.Component:
         WorkflowState.show_equipment_panel,
         rx.vstack(
             rx.hstack(
-                rx.text("TOOLBOX", class_name="text-xs font-bold text-gray-400 uppercase"),
+                rx.text("TOOLBOX", class_name="text-xs font-bold text-white-400 uppercase"),
                 rx.spacer(),
                 rx.button(
                     rx.icon("x", size=14),
@@ -181,7 +181,7 @@ def equipment_panel() -> rx.Component:
             ),
             rx.box(
                 rx.vstack(
-                    rx.text("EQUIPMENT", class_name="text-[10px] text-gray-500 font-bold uppercase mb-2"),
+                    rx.text("EQUIPMENT", class_name="text-[10px] text-white-500 font-bold uppercase mb-2"),
                     rx.text(
                         rx.cond(
                             WorkflowState.is_dragging,
@@ -191,12 +191,12 @@ def equipment_panel() -> rx.Component:
                         class_name=rx.cond(
                             WorkflowState.is_dragging,
                             "text-[9px] text-green-400 mb-2 italic font-bold",
-                            "text-[9px] text-gray-600 mb-2 italic"
+                            "text-[9px] text-white-600 mb-2 italic"
                         )
                     ),
                     rx.foreach(WorkflowState.equipment_categories, category_button),
                     rx.separator(class_name="my-4 bg-gray-700"),
-                    rx.text("ACTIONS", class_name="text-[10px] text-gray-500 font-bold uppercase mb-2"),
+                    rx.text("ACTIONS", class_name="text-[10px] text-white-500 font-bold uppercase mb-2"),
                     rx.foreach(WorkflowState.action_categories, category_button),
                     spacing="2",
                     width="100%"
@@ -235,7 +235,7 @@ def sensor_select_option(sensor: rx.Var[Dict]) -> rx.Component:
     return rx.select.item(
         rx.hstack(
             rx.text(sensor['name']),
-            rx.text(f"({sensor['unit']})", class_name="text-gray-500 text-xs"),
+            rx.text(f"({sensor['unit']})", class_name="text-white-500 text-xs"),
             spacing="2"
         ),
         value=sensor['id']
@@ -262,8 +262,26 @@ def severity_button(sev: rx.Var[Dict]) -> rx.Component:
 
 def equipment_config_form() -> rx.Component:
     return rx.vstack(
+        # --- NUEVO SELECTOR DE EQUIPO ESPECÍFICO ---
         rx.vstack(
-            rx.text("Sensor", class_name="text-xs text-gray-400 font-bold uppercase"),
+            rx.text("Target Equipment (3D Asset)", class_name="text-xs text-white-400 font-bold uppercase"),
+            rx.select.root(
+                rx.select.trigger(placeholder="Select specific machine...", class_name="w-full"),
+                rx.select.content(
+                    # Iteramos sobre los equipos extraídos del GLB
+                    rx.foreach(
+                        WorkflowState.available_equipment,
+                        lambda eq: rx.select.item(eq["label"], value=eq["name"]) 
+                    )
+                ),
+                value=WorkflowState.config_specific_equipment_id,
+                on_change=WorkflowState.set_config_specific_equipment_id,
+            ),
+            spacing="1",
+            width="100%"
+        ),
+        rx.vstack(
+            rx.text("Sensor", class_name="text-xs text-white-400 font-bold uppercase"),
             rx.select.root(
                 rx.select.trigger(placeholder="Select sensor...", class_name="w-full"),
                 rx.select.content(
@@ -277,7 +295,7 @@ def equipment_config_form() -> rx.Component:
         ),
         rx.hstack(
             rx.vstack(
-                rx.text("Condition", class_name="text-xs text-gray-400 font-bold uppercase"),
+                rx.text("Condition", class_name="text-xs text-white-400 font-bold uppercase"),
                 rx.select.root(
                     rx.select.trigger(class_name="w-full"),
                     rx.select.content(
@@ -290,7 +308,7 @@ def equipment_config_form() -> rx.Component:
                 width="50%"
             ),
             rx.vstack(
-                rx.text("Threshold", class_name="text-xs text-gray-400 font-bold uppercase"),
+                rx.text("Threshold", class_name="text-xs text-white-400 font-bold uppercase"),
                 rx.input(
                     type="number",
                     value=WorkflowState.config_threshold,
@@ -304,7 +322,7 @@ def equipment_config_form() -> rx.Component:
             width="100%"
         ),
         rx.vstack(
-            rx.text("Alert Severity", class_name="text-xs text-gray-400 font-bold uppercase"),
+            rx.text("Alert Severity", class_name="text-xs text-white-400 font-bold uppercase"),
             rx.hstack(
                 rx.foreach(WorkflowState.severity_options, severity_button),
                 spacing="2"
@@ -322,7 +340,7 @@ def action_config_form() -> rx.Component:
         rx.cond(
             WorkflowState.selected_node_category == "whatsapp",
             rx.vstack(
-                rx.text("Phone Number", class_name="text-xs text-gray-400 font-bold uppercase"),
+                rx.text("Phone Number", class_name="text-xs text-white-400 font-bold uppercase"),
                 rx.input(
                     placeholder="+1234567890",
                     value=WorkflowState.config_phone_number,
@@ -337,7 +355,7 @@ def action_config_form() -> rx.Component:
         rx.cond(
             WorkflowState.selected_node_category == "email",
             rx.vstack(
-                rx.text("Email Address", class_name="text-xs text-gray-400 font-bold uppercase"),
+                rx.text("Email Address", class_name="text-xs text-white-400 font-bold uppercase"),
                 rx.input(
                     placeholder="alert@company.com",
                     value=WorkflowState.config_email,
@@ -352,7 +370,7 @@ def action_config_form() -> rx.Component:
         rx.cond(
             WorkflowState.selected_node_category == "webhook",
             rx.vstack(
-                rx.text("Webhook URL", class_name="text-xs text-gray-400 font-bold uppercase"),
+                rx.text("Webhook URL", class_name="text-xs text-white-400 font-bold uppercase"),
                 rx.input(
                     placeholder="https://api.example.com/webhook",
                     value=WorkflowState.config_webhook_url,
@@ -365,7 +383,7 @@ def action_config_form() -> rx.Component:
             rx.fragment()
         ),
         rx.vstack(
-            rx.text("Alert Severity", class_name="text-xs text-gray-400 font-bold uppercase"),
+            rx.text("Alert Severity", class_name="text-xs text-white-400 font-bold uppercase"),
             rx.hstack(
                 rx.foreach(WorkflowState.severity_options, severity_button),
                 spacing="2"
@@ -386,7 +404,7 @@ def config_panel() -> rx.Component:
                 rx.hstack(
                     rx.vstack(
                         rx.text("Configure Node", class_name="text-sm font-bold text-white"),
-                        rx.text(WorkflowState.selected_node_category, class_name="text-xs text-gray-400 capitalize"),
+                        rx.text(WorkflowState.selected_node_category, class_name="text-xs text-white-400 capitalize"),
                         spacing="0",
                         align_items="start"
                     ),
@@ -429,7 +447,7 @@ def workflow_list_item(workflow: rx.Var[Dict]) -> rx.Component:
             rx.text(workflow['name'], class_name="text-sm font-medium text-white"),
             rx.hstack(
                 rx.badge(workflow['status'], size="1"),
-                rx.text(workflow['updated_at'], class_name="text-[10px] text-gray-500"),
+                rx.text(workflow['updated_at'], class_name="text-[10px] text-white-500"),
                 spacing="2"
             ),
             spacing="0",
@@ -463,7 +481,7 @@ def workflow_list_dialog() -> rx.Component:
                     rx.cond(
                         WorkflowState.saved_workflows.length() > 0,
                         rx.vstack(rx.foreach(WorkflowState.saved_workflows, workflow_list_item), spacing="2", width="100%"),
-                        rx.text("No saved workflows yet", class_name="text-gray-500 text-sm py-8 text-center")
+                        rx.text("No saved workflows yet", class_name="text-white-500 text-sm py-8 text-center")
                     ),
                     spacing="2",
                     width="100%"
@@ -484,7 +502,7 @@ def test_result_item(result: rx.Var[Dict]) -> rx.Component:
         ),
         rx.vstack(
             rx.text(result['trigger_node'], class_name="text-sm text-white"),
-            rx.text(f"{result['sensor']}: {result['current_value']} {result['operator']} {result['threshold']}", class_name="text-xs text-gray-400"),
+            rx.text(f"{result['sensor']}: {result['current_value']} {result['operator']} {result['threshold']}", class_name="text-xs text-white-400"),
             spacing="0",
             align_items="start"
         ),
@@ -518,7 +536,7 @@ def test_results_dialog() -> rx.Component:
                     rx.cond(
                         WorkflowState.test_results.length() > 0,
                         rx.vstack(rx.foreach(WorkflowState.test_results, test_result_item), spacing="2", width="100%"),
-                        rx.text("No triggers configured", class_name="text-gray-500 text-sm py-4")
+                        rx.text("No triggers configured", class_name="text-white-500 text-sm py-4")
                     ),
                     spacing="2",
                     width="100%"
@@ -599,11 +617,11 @@ def workflow_canvas() -> rx.Component:
 def sensor_gauge(item: rx.Var[Dict]) -> rx.Component:
     """Single sensor gauge showing live value."""
     return rx.vstack(
-        rx.text(item['equipment'], class_name="text-[10px] text-gray-500 truncate w-full text-center"),
-        rx.text(item['key'], class_name="text-xs font-medium text-gray-300 uppercase"),
+        rx.text(item['equipment'], class_name="text-[10px] text-white-500 truncate w-full text-center"),
+        rx.text(item['key'], class_name="text-xs font-medium text-white-300 uppercase"),
         rx.text(item['value'], class_name="text-2xl font-bold text-white font-mono"),
         rx.hstack(
-            rx.text("Threshold:", class_name="text-[10px] text-gray-500"),
+            rx.text("Threshold:", class_name="text-[10px] text-white-500"),
             rx.text(item['threshold'], class_name="text-[10px] text-yellow-400 font-mono"),
             spacing="1"
         ),
@@ -638,7 +656,7 @@ def live_sensor_dashboard() -> rx.Component:
                     ),
                     rx.hstack(
                         rx.icon("loader-2", size=20, class_name="animate-spin text-blue-400"),
-                        rx.text("Initializing sensors...", class_name="text-sm text-gray-400"),
+                        rx.text("Initializing sensors...", class_name="text-sm text-white-400"),
                         spacing="2",
                         class_name="py-4"
                     )
@@ -671,7 +689,7 @@ def simulation_controls() -> rx.Component:
                     ),
                     rx.hstack(
                         rx.box(class_name="w-3 h-3 bg-gray-600 rounded-full"),
-                        rx.text("SIMULATION STOPPED", class_name="text-xs font-bold text-gray-500 uppercase"),
+                        rx.text("SIMULATION STOPPED", class_name="text-xs font-bold text-white-500 uppercase"),
                         spacing="2"
                     )
                 ),
@@ -680,7 +698,7 @@ def simulation_controls() -> rx.Component:
             rx.spacer(),
             rx.hstack(
                 rx.hstack(
-                    rx.text("Interval:", class_name="text-xs text-gray-400"),
+                    rx.text("Interval:", class_name="text-xs text-white-400"),
                     rx.select.root(
                         rx.select.trigger(class_name="w-28 h-8 text-xs"),
                         rx.select.content(
@@ -752,12 +770,12 @@ def alert_feed_item(alert: rx.Var[Dict]) -> rx.Component:
         rx.box(class_name="w-1 h-full min-h-[40px] bg-red-500 rounded-l"),
         rx.vstack(
             rx.hstack(
-                rx.text(alert['timestamp'], class_name="text-[10px] text-gray-500 font-mono"),
+                rx.text(alert['timestamp'], class_name="text-[10px] text-white-500 font-mono"),
                 rx.badge(alert['action_type'], size="1", color_scheme="blue"),
                 spacing="2"
             ),
             rx.text(alert['equipment'], class_name="text-xs font-medium text-white"),
-            rx.text(f"{alert['sensor']}: {alert['value']} / {alert['threshold']}", class_name="text-[10px] text-gray-400"),
+            rx.text(f"{alert['sensor']}: {alert['value']} / {alert['threshold']}", class_name="text-[10px] text-white-400"),
             spacing="0",
             align_items="start",
             class_name="py-1"
@@ -795,8 +813,8 @@ def alert_feed_panel() -> rx.Component:
                     class_name="overflow-y-auto max-h-[calc(100vh-350px)]"
                 ),
                 rx.vstack(
-                    rx.icon("inbox", size=32, class_name="text-gray-700"),
-                    rx.text("No alerts yet", class_name="text-xs text-gray-600"),
+                    rx.icon("inbox", size=32, class_name="text-white-700"),
+                    rx.text("No alerts yet", class_name="text-xs text-white-600"),
                     class_name="items-center justify-center py-8"
                 )
             ),

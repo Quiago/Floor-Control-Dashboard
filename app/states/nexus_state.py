@@ -3,6 +3,7 @@ import asyncio
 from typing import List
 import datetime
 import random
+from app.states.workflow_state import WorkflowState
 
 class NexusState(rx.State):
     """Main application state"""
@@ -147,3 +148,15 @@ class NexusState(rx.State):
     def clear_workflow_canvas(self):
         self.workflow_nodes = []
 
+    # --- ERROR FIX: Call the correct method in WorkflowState ---
+    @rx.event
+    def create_workflow_for_selection(self):
+        """Acción rápida: Crear workflow para el objeto seleccionado"""
+        if not self.selected_object_name:
+            return rx.toast.warning("Select an object first")
+
+        # Esta función ahora existe en WorkflowState
+        return [
+            WorkflowState.prepare_workflow_for_equipment(self.selected_object_name),
+            rx.redirect("/workflow-builder")
+        ]

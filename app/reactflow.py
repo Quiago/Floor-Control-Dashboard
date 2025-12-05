@@ -1,18 +1,21 @@
 # app/reactflow.py
 """
-ReactFlow wrapper for Reflex - CONTROLLED MODE.
+ReactFlow wrapper for Reflex.
 
-IMPORTANT: Using reactflow@11.10.1 because version 11.11.3+ has a bug
-where nodes disappear when position is updated in controlled mode.
-See: https://github.com/xyflow/xyflow/issues/4287
+Based on the official Reflex documentation example.
+Uses rx.Component (not NoSSRComponent) as per the working example.
 """
 import reflex as rx
 from typing import Any, Dict, List
 
 
 class ReactFlowLib(rx.Component):
-    """Base component for ReactFlow library."""
-    # Pin to 11.10.1 - later versions have the disappearing nodes bug
+    """
+    Base component for ReactFlow library.
+    
+    Note: Using rx.Component as per the working Reflex example.
+    ReactFlow handles its own client-side rendering internally.
+    """
     library = "reactflow@11.10.1"
     
     def _get_custom_code(self) -> str:
@@ -21,11 +24,11 @@ class ReactFlowLib(rx.Component):
 
 
 class ReactFlow(ReactFlowLib):
-    """Main ReactFlow component - controlled mode"""
+    """Main ReactFlow component"""
     
     tag = "ReactFlow"
     
-    # CONTROLLED mode props
+    # Data props
     nodes: rx.Var[List[Dict[str, Any]]]
     edges: rx.Var[List[Dict[str, Any]]]
     
@@ -35,8 +38,9 @@ class ReactFlow(ReactFlowLib):
     # Interaction props
     nodes_draggable: rx.Var[bool]
     nodes_connectable: rx.Var[bool]
+    nodes_focusable: rx.Var[bool]
     
-    # Event handlers
+    # Event handlers - use the exact pattern from the docs
     on_nodes_change: rx.EventHandler[lambda e0: [e0]]
     on_edges_change: rx.EventHandler[lambda e0: [e0]]
     on_connect: rx.EventHandler[lambda e0: [e0]]
@@ -44,7 +48,9 @@ class ReactFlow(ReactFlowLib):
 
 class Background(ReactFlowLib):
     """Background component for ReactFlow"""
+    
     tag = "Background"
+    
     color: rx.Var[str]
     gap: rx.Var[int]
     size: rx.Var[int]
@@ -53,9 +59,12 @@ class Background(ReactFlowLib):
 
 class Controls(ReactFlowLib):
     """Controls component for ReactFlow"""
+    
     tag = "Controls"
 
 
+# Create component factory functions
 react_flow = ReactFlow.create
 background = Background.create
 controls = Controls.create
+

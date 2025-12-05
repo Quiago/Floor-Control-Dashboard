@@ -2,6 +2,10 @@ import reflex as rx
 from app.states.nexus_state import NexusState
 from app.workflow_builder import workflow_builder
 
+# Initialize data directory for SQLite
+from pathlib import Path
+Path("data").mkdir(exist_ok=True)
+
 # --- RUL CHART ---
 def rul_chart(percentage: int) -> rx.Component:
     circumference = 2 * 3.1416 * 40
@@ -229,4 +233,3 @@ app = rx.App(
 )
 app.add_page(index, route="/")
 app.add_page(workflow_builder, route="/workflow-builder")
-

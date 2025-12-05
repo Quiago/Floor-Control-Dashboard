@@ -8,3 +8,5 @@ assets/external/
 __pycache__/
 /app/__pycache__/
 *.glb
+*.env
+/.vscode/

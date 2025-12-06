@@ -6,12 +6,11 @@ Adds node configuration, save/load, and test execution while
 preserving the working ReactFlow drag/drop logic.
 """
 import reflex as rx
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 import random
 import uuid
-import asyncio
-from datetime import datetime
 from app.extractors.glb_parser import load_equipment_from_glb
+from app.components.shared.design_tokens import COLORS
 
 
 # Import services (lazy import to avoid circular deps)
@@ -1162,7 +1161,7 @@ class WorkflowState(rx.State):
         
         test_value = round(threshold * 1.25, 2)
         
-        self._show_toast(f"🧪 Triggering test alert...", "info")
+        self._show_toast("🧪 Triggering test alert...", "info")
         
         await self._execute_action(
             trigger_node, action_node, test_value, threshold, sensor_type

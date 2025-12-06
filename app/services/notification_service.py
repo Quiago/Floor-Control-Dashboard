@@ -171,6 +171,7 @@ class NotificationService:
             
             response = await client.post(url, headers=headers, json=payload)
             response_data = response.json()
+            print("WhatsApp API Response:", response_data)
             
             if response.status_code == 200:
                 message_id = response_data.get('messages', [{}])[0].get('id')

@@ -17,7 +17,7 @@ async def main():
     
     # Datos de prueba (CAMBIA ESTO POR TUS DATOS REALES)
     TEST_EMAIL = "cquiala12work@gmail.com" 
-    TEST_PHONE = "+5354825243" # Tu número con código de país (sin +)
+    TEST_PHONE = "+971581524067" # Tu número con código de país (sin +)
 
     # 2. Prueba de Email
     if notification_service.config.email_configured:
@@ -39,7 +39,8 @@ async def main():
         print(f"\n💬 Enviando WhatsApp de prueba a {TEST_PHONE}...")
         result = await notification_service.send_whatsapp(
             phone_number=TEST_PHONE,
-            message="🤖 Nexus: Esta es una prueba de conectividad de la API de WhatsApp."
+            message="🤖 Nexus: Esta es una prueba de conectividad de la API de WhatsApp.",
+            #template_name="hello_world"  # Asegúrate de que este template exista en tu configuración de WhatsApp Business
         )
         print(f"Resultado WhatsApp: {'✅ Éxito' if result.success else '❌ Error'}")
         if not result.success:

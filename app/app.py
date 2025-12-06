@@ -3,6 +3,11 @@ from app.states.nexus_state import NexusState
 from app.workflow_builder import workflow_builder
 from app.workflow_builder import live_sensor_dashboard
 from app.states.workflow_state import WorkflowState
+from dotenv import load_dotenv
+import os
+
+# Carga las variables del archivo .env explícitamente
+load_dotenv()
 
 # Initialize data directory for SQLite
 from pathlib import Path

@@ -1,8 +1,8 @@
 # app/components/workflow/header.py
-"""Header del Workflow Builder"""
+"""Workflow Builder Header"""
 import reflex as rx
 from app.states.workflow_state import WorkflowState
-from app.components.shared.design_tokens import GRADIENT_PRIMARY, TRANSITION_DEFAULT
+from app.components.shared.design_tokens import GRADIENT_PRIMARY, TRANSITION_DEFAULT, INPUT_BASE
 from app.components.shared import stat_pill
 
 def workflow_header() -> rx.Component:
@@ -15,7 +15,7 @@ def workflow_header() -> rx.Component:
                 rx.input(
                     value=WorkflowState.current_workflow_name,
                     on_change=WorkflowState.set_workflow_name,
-                    class_name="text-lg font-bold text-white bg-transparent border-none focus:outline-none w-48",
+                    class_name="text-lg font-bold text-slate-100 bg-transparent border-none focus:outline-none w-48 placeholder-slate-500",
                     placeholder="Workflow name..."
                 ),
                 rx.hstack(
@@ -96,6 +96,6 @@ def workflow_header() -> rx.Component:
             spacing="2"
         ),
         
-        class_name="w-full p-4 border-b border-white/10 bg-[#12121a]",
+        class_name="w-full p-4 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-sm",
         align_items="center"
     )

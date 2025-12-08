@@ -1,9 +1,10 @@
 # app/components/workflow/config_panel.py
-"""Panel de configuración de nodos"""
+"""Node configuration panel"""
 import reflex as rx
 from app.states.workflow_state import WorkflowState
 from app.components.shared.design_tokens import (
-    GLASS_STRONG, SHADOW_XL, GRADIENT_PRIMARY, TRANSITION_DEFAULT
+    GLASS_STRONG, GLASS_PANEL_PREMIUM, SHADOW_XL, GRADIENT_PRIMARY, 
+    TRANSITION_DEFAULT, INPUT_FIELD
 )
 from app.components.shared import form_field, gradient_separator
 
@@ -77,7 +78,7 @@ def config_panel() -> rx.Component:
                 spacing="3",
                 width="100%"
             ),
-            class_name=f"absolute top-20 right-4 {GLASS_STRONG} p-4 border border-white/10 rounded-xl z-50 w-80 {SHADOW_XL}"
+            class_name=f"absolute top-20 right-4 {GLASS_PANEL_PREMIUM} p-4 rounded-xl z-50 w-80 max-w-[90vw] {SHADOW_XL}"
         ),
         rx.fragment()
     )
@@ -112,7 +113,7 @@ def equipment_config_form() -> rx.Component:
                         lambda s: rx.select.item(
                             rx.hstack(
                                 rx.text(s['name']),
-                                rx.text(f"({s['unit']})", class_name="text-gray-500 text-xs"),
+                                rx.text(f"({s['unit']})", class_name="text-slate-400 text-xs"),
                                 spacing="2"
                             ),
                             value=s['id']
@@ -146,7 +147,7 @@ def equipment_config_form() -> rx.Component:
                     type="number",
                     value=WorkflowState.config_threshold,
                     on_change=WorkflowState.set_config_threshold,
-                    class_name="w-full bg-gray-800 border-gray-700"
+                    class_name=INPUT_FIELD
                 )
             ),
             spacing="2",
@@ -191,7 +192,7 @@ def action_config_form() -> rx.Component:
                     placeholder="+1234567890",
                     value=WorkflowState.config_phone_number,
                     on_change=WorkflowState.set_config_phone_number,
-                    class_name="w-full bg-gray-800 border-gray-700"
+                    class_name=INPUT_FIELD
                 )
             ),
             rx.fragment()
@@ -205,7 +206,7 @@ def action_config_form() -> rx.Component:
                     placeholder="alert@company.com",
                     value=WorkflowState.config_email,
                     on_change=WorkflowState.set_config_email,
-                    class_name="w-full bg-gray-800 border-gray-700"
+                    class_name=INPUT_FIELD
                 )
             ),
             rx.fragment()
@@ -219,7 +220,7 @@ def action_config_form() -> rx.Component:
                     placeholder="https://api.example.com/webhook",
                     value=WorkflowState.config_webhook_url,
                     on_change=WorkflowState.set_config_webhook_url,
-                    class_name="w-full bg-gray-800 border-gray-700"
+                    class_name=INPUT_FIELD
                 )
             ),
             rx.fragment()

@@ -1,8 +1,8 @@
 # app/components/workflow/toolbox.py
-"""Sidebar con herramientas draggable"""
+"""Sidebar with draggable tools"""
 import reflex as rx
 from app.states.workflow_state import WorkflowState
-from app.components.shared.design_tokens import GLASS_PANEL, TRANSITION_DEFAULT
+from app.components.shared.design_tokens import GLASS_PANEL_PREMIUM, TRANSITION_DEFAULT
 from app.components.shared import section_label, icon_button
 
 def get_icon(icon_name: rx.Var[str], size: int = 16) -> rx.Component:
@@ -38,7 +38,7 @@ def category_button(category: rx.Var[dict]) -> rx.Component:
             class_name=rx.cond(
                 WorkflowState.is_dragging,
                 f"w-full justify-start opacity-50 cursor-grabbing pointer-events-none {TRANSITION_DEFAULT}",
-                f"w-full justify-start cursor-grab hover:bg-white/5 border border-transparent hover:border-white/10 {TRANSITION_DEFAULT}"
+                f"w-full justify-start cursor-grab hover:bg-slate-700/40 border border-transparent hover:border-slate-600/40 {TRANSITION_DEFAULT}"
             ),
             type="button",
         ),
@@ -58,7 +58,7 @@ def equipment_panel() -> rx.Component:
             rx.hstack(
                 rx.text(
                     "TOOLBOX",
-                    class_name="text-xs font-bold text-gray-400 uppercase tracking-wider"
+                    class_name="text-xs font-bold text-slate-400 uppercase tracking-wider"
                 ),
                 rx.spacer(),
                 icon_button("x", WorkflowState.toggle_equipment_panel, size=14),
@@ -78,13 +78,13 @@ def equipment_panel() -> rx.Component:
                         ),
                         class_name=rx.cond(
                             WorkflowState.is_dragging,
-                            "text-[9px] text-emerald-400 mb-2 italic font-bold",
-                            "text-[9px] text-gray-600 mb-2 italic"
+                            "text-[9px] text-green-400 mb-2 italic font-bold",
+                            "text-[9px] text-slate-500 mb-2 italic"
                         )
                     ),
                     rx.foreach(WorkflowState.equipment_categories, category_button),
                     
-                    rx.box(class_name="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent my-4"),
+                    rx.box(class_name="h-px w-full bg-gradient-to-r from-transparent via-slate-500/30 to-transparent my-4"),
                     
                     # Actions
                     section_label("ACTIONS"),
@@ -99,7 +99,7 @@ def equipment_panel() -> rx.Component:
             
             # Footer
             rx.vstack(
-                rx.box(class_name="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent"),
+                rx.box(class_name="h-px w-full bg-gradient-to-r from-transparent via-slate-500/30 to-transparent"),
                 rx.button(
                     rx.hstack(
                         rx.icon("trash-2", size=14),
@@ -114,13 +114,13 @@ def equipment_panel() -> rx.Component:
                 width="100%"
             ),
             
-            class_name=f"w-64 h-full {GLASS_PANEL} border-r border-white/10 flex flex-col p-4",
+            class_name=f"w-64 h-full {GLASS_PANEL_PREMIUM} border-r border-slate-600/40 flex flex-col p-4",
             spacing="0"
         ),
         rx.button(
             rx.icon("panel-left", size=16),
             variant="ghost",
-            class_name=f"absolute top-20 left-4 z-50 {GLASS_PANEL} border border-white/10 hover:bg-white/5",
+            class_name=f"absolute top-20 left-4 z-50 {GLASS_PANEL_PREMIUM} border border-slate-600/40 hover:bg-slate-700/50",
             on_click=WorkflowState.toggle_equipment_panel
         )
     )

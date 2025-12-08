@@ -1,9 +1,9 @@
 # app/components/monitor/context_menu.py
-"""Menú flotante contextual al seleccionar equipo"""
+"""Floating contextual menu when equipment is selected"""
 import reflex as rx
 from app.states.monitor_state import MonitorState
 from app.components.shared.design_tokens import (
-    GLASS_STRONG, TRANSITION_DEFAULT, SHADOW_XL
+    GLASS_PANEL_PREMIUM, TRANSITION_DEFAULT, SHADOW_XL
 )
 from app.components.shared import gradient_separator, icon_button, section_label
 
@@ -35,7 +35,7 @@ def floating_context_menu() -> rx.Component:
             ),
             
             spacing="3",
-            class_name=f"{GLASS_STRONG} absolute bottom-6 right-6 p-4 rounded-xl {SHADOW_XL} z-50 w-80"
+            class_name=f"{GLASS_PANEL_PREMIUM} absolute bottom-6 right-6 p-4 rounded-xl {SHADOW_XL} z-50 w-80 max-w-[90vw]"
         ),
         rx.fragment()
     )
@@ -46,24 +46,24 @@ def properties_view() -> rx.Component:
         # Stats Grid
         rx.grid(
             rx.vstack(
-                rx.text("TEMP", class_name="text-[10px] text-gray-400 font-bold"),
+                rx.text("TEMP", class_name="text-[10px] text-slate-400 font-bold"),
                 rx.text(
                     f"{MonitorState.equipment_temp}°C",
-                    class_name="text-sm font-mono text-white"
+                    class_name="text-sm font-mono text-slate-100"
                 ),
                 spacing="1"
             ),
             rx.vstack(
-                rx.text("PRESS", class_name="text-[10px] text-gray-400 font-bold"),
+                rx.text("PRESS", class_name="text-[10px] text-slate-400 font-bold"),
                 rx.text(
                     f"{MonitorState.equipment_pressure}",
-                    class_name="text-sm font-mono text-white"
+                    class_name="text-sm font-mono text-slate-100"
                 ),
                 spacing="1"
             ),
             rx.vstack(
-                rx.text("STATUS", class_name="text-[10px] text-gray-400 font-bold"),
-                rx.badge(MonitorState.equipment_status, size="1"),
+                rx.text("STATUS", class_name="text-[10px] text-slate-400 font-bold"),
+                rx.badge(MonitorState.equipment_status, size="1", color_scheme="green"),
                 spacing="1"
             ),
             columns="3",

@@ -1,40 +1,43 @@
 # app/components/shared/__init__.py
-"""Componentes compartidos - Reutilizables en toda la app"""
+"""Shared Components - Reusable across the application"""
 import reflex as rx
 from typing import Optional
-from .design_tokens import GRADIENT_PRIMARY, TRANSITION_DEFAULT, SEPARATOR_GRADIENT
+from .design_tokens import (
+    GRADIENT_PRIMARY, TRANSITION_DEFAULT, SEPARATOR_GRADIENT,
+    GLASS_CARD, GLASS_PANEL_PREMIUM, INPUT_FIELD, COLORS, GRAPH_COLORS
+)
 
 # === STATUS DOT ===
-def status_dot(running: bool = False, color: str = "emerald") -> rx.Component:
-    """Dot animado indicador de estado"""
+def status_dot(running: bool = False, color: str = "green") -> rx.Component:
+    """Animated status indicator dot"""
     return rx.box(
         class_name=rx.cond(
             running,
             f"w-2 h-2 bg-{color}-500 rounded-full animate-pulse",
-            "w-2 h-2 bg-gray-600 rounded-full"
+            "w-2 h-2 bg-slate-600 rounded-full"
         )
     )
 
 # === STAT PILL ===
-def stat_pill(label: str, value: rx.Var[str], color: str = "gray") -> rx.Component:
-    """Pill compacto para estadísticas"""
+def stat_pill(label: str, value: rx.Var[str], color: str = "slate") -> rx.Component:
+    """Compact stat pill"""
     return rx.hstack(
-        rx.text(label, class_name="text-[9px] text-gray-500 uppercase tracking-wider font-bold"),
-        rx.text(value, class_name=f"text-xs font-mono text-{color}-400"),
+        rx.text(label, class_name="text-[9px] text-slate-400 uppercase tracking-wider font-bold"),
+        rx.text(value, class_name=f"text-xs font-mono text-{color}-300"),
         spacing="1",
-        class_name="px-2 py-1 rounded-full bg-white/5 border border-white/10"
+        class_name="px-2 py-1 rounded-full bg-slate-800/60 border border-slate-600/40"
     )
 
 # === SECTION LABEL ===
 def section_label(text: str) -> rx.Component:
-    """Label de sección con línea decorativa"""
+    """Section label with decorative line"""
     return rx.hstack(
-        rx.box(class_name="h-px w-8 bg-gradient-to-r from-transparent to-white/20"),
+        rx.box(class_name="h-px w-8 bg-gradient-to-r from-transparent to-slate-500/40"),
         rx.text(
             text,
-            class_name="text-[10px] text-gray-500 font-bold uppercase tracking-wider"
+            class_name="text-[10px] text-slate-400 font-bold uppercase tracking-wider"
         ),
-        rx.box(class_name="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent"),
+        rx.box(class_name="h-px flex-1 bg-gradient-to-r from-slate-500/40 to-transparent"),
         spacing="3",
         width="100%",
         align_items="center"
@@ -48,12 +51,13 @@ def icon_button(
     size: int = 16,
     tooltip: Optional[str] = None
 ) -> rx.Component:
-    """Botón de icono con variantes"""
+    """Icon button with variants"""
     
     variants = {
-        "ghost": "hover:bg-white/10 text-gray-400 hover:text-white",
-        "danger": "hover:bg-rose-500/10 text-rose-400 hover:text-rose-300",
-        "primary": f"{GRADIENT_PRIMARY} text-white hover:opacity-90"
+        "ghost": "hover:bg-slate-700/50 text-slate-400 hover:text-white",
+        "danger": "hover:bg-red-500/10 text-red-400 hover:text-red-300",
+        "primary": f"{GRADIENT_PRIMARY} text-white hover:opacity-90",
+        "warning": "hover:bg-orange-500/10 text-orange-400 hover:text-orange-300"
     }
     
     btn = rx.button(
@@ -68,6 +72,32 @@ def icon_button(
         return rx.tooltip(btn, content=tooltip)
     return btn
 
+# === PREMIUM INPUT ===
+def premium_input(
+    placeholder: str,
+    value: rx.Var[str],
+    on_change,
+    input_type: str = "text",
+    icon: Optional[str] = None
+) -> rx.Component:
+    """High-contrast input field with optional icon"""
+    input_component = rx.input(
+        placeholder=placeholder,
+        value=value,
+        on_change=on_change,
+        type=input_type,
+        class_name=INPUT_FIELD
+    )
+    
+    if icon:
+        return rx.hstack(
+            rx.icon(icon, size=16, class_name="text-slate-400"),
+            input_component,
+            spacing="2",
+            class_name="w-full"
+        )
+    return input_component
+
 # === FORM FIELD ===
 def form_field(
     label: str,
@@ -75,19 +105,19 @@ def form_field(
     error: rx.Var[str] = "",
     helper: Optional[str] = None
 ) -> rx.Component:
-    """Wrapper consistente para campos de formulario"""
+    """Consistent form field wrapper"""
     return rx.vstack(
         rx.text(
             label,
-            class_name="text-xs text-gray-400 font-bold uppercase tracking-wider"
+            class_name="text-xs text-slate-300 font-bold uppercase tracking-wider"
         ),
         input_component,
         rx.cond(
             error != "",
-            rx.text(error, class_name="text-[10px] text-rose-400"),
+            rx.text(error, class_name="text-[10px] text-red-400"),
             rx.cond(
                 helper is not None,
-                rx.text(helper, class_name="text-[10px] text-gray-600"),
+                rx.text(helper, class_name="text-[10px] text-slate-500"),
                 rx.fragment()
             )
         ),
@@ -96,21 +126,33 @@ def form_field(
         align_items="start"
     )
 
+# === GLASS CARD ===
+def glass_card(
+    *children,
+    padding: str = "4",
+    class_name: str = ""
+) -> rx.Component:
+    """Consistent glass card component"""
+    return rx.box(
+        *children,
+        class_name=f"{GLASS_CARD} p-{padding} rounded-xl {class_name}"
+    )
+
 # === CANVAS EMPTY STATE ===
 def canvas_empty_state(
     icon: str = "layout-template",
-    title: str = "Canvas vacío",
-    description: str = "Arrastra elementos para empezar"
+    title: str = "Empty Canvas",
+    description: str = "Drag elements to get started"
 ) -> rx.Component:
-    """Estado vacío elegante con instrucciones"""
+    """Elegant empty state with instructions"""
     return rx.center(
         rx.vstack(
             rx.box(
-                rx.icon(icon, size=48, class_name="text-gray-700"),
-                class_name="p-6 rounded-full bg-gradient-to-br from-white/5 to-white/[0.02]"
+                rx.icon(icon, size=48, class_name="text-slate-600"),
+                class_name="p-6 rounded-full bg-gradient-to-br from-slate-700/30 to-slate-800/20"
             ),
-            rx.text(title, class_name="text-lg font-medium text-gray-300"),
-            rx.text(description, class_name="text-sm text-gray-600"),
+            rx.text(title, class_name="text-lg font-medium text-slate-300"),
+            rx.text(description, class_name="text-sm text-slate-500"),
             spacing="4",
             align_items="center"
         ),
@@ -119,5 +161,45 @@ def canvas_empty_state(
 
 # === SEPARATOR WITH GRADIENT ===
 def gradient_separator() -> rx.Component:
-    """Separador con gradiente"""
+    """Gradient separator"""
     return rx.box(class_name=SEPARATOR_GRADIENT)
+
+# === DEPENDENCY NODE ===
+def dependency_node(
+    name: str,
+    node_type: str = "upstream",  # upstream, selected, downstream
+    status: str = "active"
+) -> rx.Component:
+    """Node for dependency visualization"""
+    colors = {
+        "upstream": ("orange", "bg-orange-500/20 border-orange-500/40 text-orange-300"),
+        "selected": ("blue", "bg-blue-500/30 border-blue-500/50 text-blue-200 ring-2 ring-blue-500/30"),
+        "downstream": ("green", "bg-green-500/20 border-green-500/40 text-green-300")
+    }
+    
+    color_scheme, classes = colors.get(node_type, colors["upstream"])
+    
+    icons = {
+        "upstream": "arrow-up-circle",
+        "selected": "target",
+        "downstream": "arrow-down-circle"
+    }
+    
+    return rx.hstack(
+        rx.icon(icons[node_type], size=14, class_name=f"text-{color_scheme}-400"),
+        rx.text(name, class_name="text-xs font-medium truncate"),
+        spacing="2",
+        class_name=f"px-3 py-2 rounded-lg border {classes} {TRANSITION_DEFAULT} hover:scale-[1.02] cursor-pointer max-w-full"
+    )
+
+# === MERMAID DIAGRAM ===
+def mermaid_diagram(diagram_code: rx.Var[str]) -> rx.Component:
+    """Render a Mermaid.js diagram"""
+    return rx.box(
+        rx.html(
+            rx.Var.create(
+                f'<pre class="mermaid">{diagram_code}</pre>'
+            )
+        ),
+        class_name="w-full overflow-hidden rounded-lg bg-slate-900/50 p-2"
+    )

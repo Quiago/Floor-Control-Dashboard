@@ -12,11 +12,11 @@ from app.components.monitor.chat_panel import chat_panel
 from app.components.shared.design_tokens import COLORS
 
 def monitor_header() -> rx.Component:
-    """Header con navegación"""
+    """Header with navigation"""
     return rx.hstack(
         rx.hstack(
             rx.icon("activity", size=24, class_name="text-blue-400"),
-            rx.heading("Nexus Monitor", size="6", class_name="text-white"),
+            rx.heading("Nexus Monitor", size="6", class_name="text-slate-100"),
             spacing="3",
             align_items="center"
         ),
@@ -31,7 +31,7 @@ def monitor_header() -> rx.Component:
             color_scheme="blue",
             on_click=rx.redirect("/workflow-builder"),
         ),
-        class_name="w-full px-4 py-3 border-b border-gray-800 bg-gray-900",
+        class_name="w-full px-4 py-3 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-sm",
         align_items="center"
     )
 

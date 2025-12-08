@@ -1,7 +1,7 @@
 [project]
 name = "floor-control-dashboard"
 version = "0.1.0"
-description = "Add your description here"
+description = "Industrial equipment monitoring system with 3D visualization and workflow automation"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -12,4 +12,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pygltflib>=1.16.5",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
 ]

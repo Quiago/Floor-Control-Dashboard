@@ -5,49 +5,54 @@ from app.components.shared.design_tokens import GLASS_PANEL, TRANSITION_DEFAULT
 from app.components.shared import status_dot
 
 def live_sensor_dashboard() -> rx.Component:
-    """Dashboard con gauges de sensores activos"""
-    return rx.cond(
-        WorkflowState.simulation_running,
-        rx.box(
-            rx.vstack(
-                # Header
-                rx.hstack(
-                    status_dot(running=True, color="emerald"),
-                    rx.text(
-                        "LIVE MONITORING",
-                        class_name="text-sm font-bold text-emerald-400 uppercase tracking-wider"
-                    ),
-                    rx.badge(
-                        f"Tick #{WorkflowState.simulation_tick_count}",
-                        color_scheme="blue",
-                        size="1"
-                    ),
-                    spacing="3",
-                    align_items="center"
+    """Dashboard con gauges de sensores activos - always rendered, hidden with CSS"""
+    return rx.box(
+        rx.vstack(
+            # Header
+            rx.hstack(
+                status_dot(running=True, color="emerald"),
+                rx.text(
+                    "LIVE MONITORING",
+                    class_name="text-sm font-bold text-emerald-400 uppercase tracking-wider"
                 ),
-                
-                # Sensor Gauges
-                rx.cond(
-                    WorkflowState.current_sensor_values.length() > 0,
-                    rx.hstack(
-                        rx.foreach(WorkflowState.current_sensor_values, sensor_gauge),
-                        spacing="4",
-                        class_name="overflow-x-auto py-2 w-full"
-                    ),
-                    rx.hstack(
-                        rx.icon("loader-2", size=20, class_name="animate-spin text-blue-400"),
-                        rx.text("Initializing sensors...", class_name="text-sm text-gray-400"),
-                        spacing="2",
-                        class_name="py-4"
-                    )
+                rx.badge(
+                    f"Tick #{WorkflowState.simulation_tick_count}",
+                    color_scheme="blue",
+                    size="1"
                 ),
-                
                 spacing="3",
-                class_name="w-full"
+                align_items="center"
             ),
-            class_name=f"bg-[#0a0a0f]/80 border-b border-white/10 px-4 py-3 {TRANSITION_DEFAULT}"
+
+            # Sensor Gauges (always render both, toggle with CSS)
+            rx.hstack(
+                rx.foreach(WorkflowState.current_sensor_values, sensor_gauge),
+                spacing="4",
+                class_name=rx.cond(
+                    WorkflowState.current_sensor_values.length() > 0,
+                    "overflow-x-auto py-2 w-full",
+                    "overflow-x-auto py-2 w-full hidden"
+                )
+            ),
+            rx.hstack(
+                rx.icon("loader-2", size=20, class_name="animate-spin text-blue-400"),
+                rx.text("Initializing sensors...", class_name="text-sm text-gray-400"),
+                spacing="2",
+                class_name=rx.cond(
+                    WorkflowState.current_sensor_values.length() > 0,
+                    "py-4 hidden",
+                    "py-4"
+                )
+            ),
+
+            spacing="3",
+            class_name="w-full"
         ),
-        rx.fragment()
+        class_name=rx.cond(
+            WorkflowState.simulation_running,
+            f"bg-[#0a0a0f]/80 border-b border-white/10 px-4 py-3 {TRANSITION_DEFAULT}",
+            f"bg-[#0a0a0f]/80 border-b border-white/10 px-4 py-3 {TRANSITION_DEFAULT} hidden"
+        )
     )
 
 def sensor_gauge(item: rx.Var[dict]) -> rx.Component:

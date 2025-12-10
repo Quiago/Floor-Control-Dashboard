@@ -85,13 +85,18 @@ class SimulationState(rx.State):
     @rx.event
     def start_simulation(self, nodes: List[Dict], edges: List[Dict]):
         """Start the simulation with workflow data."""
+        print(f"[SimulationState] ⚡ start_simulation called with {len(nodes)} nodes, {len(edges)} edges")
+        print("[SimulationState] >>> ENTRY: start_simulation")
+
         if self.simulation_running:
+            print("[SimulationState] >>> EXIT: already running")
             return
-        
+
+        print("[SimulationState] >>> Validating workflow...")
         # Validate workflow
         has_configured_equipment = False
         has_connected_action = False
-        
+
         for node in nodes:
             if not node.get('data', {}).get('is_action', False):
                 if node.get('data', {}).get('configured', False):
@@ -100,22 +105,33 @@ class SimulationState(rx.State):
                         if edge.get('source') == node['id']:
                             has_connected_action = True
                             break
-        
+
+        print(f"[SimulationState] >>> Validation: equipment={has_configured_equipment}, action={has_connected_action}")
+
         if not has_configured_equipment:
+            print("[SimulationState] >>> EXIT: no configured equipment")
             self._show_toast("Configure at least one equipment node first", "warning")
             return
-        
+
         if not has_connected_action:
+            print("[SimulationState] >>> EXIT: no connected action")
             self._show_toast("Connect equipment to an action node first", "warning")
             return
-        
+
         # Cache workflow data for tick processing
+        print("[SimulationState] >>> Caching workflow data...")
         self._cached_nodes = nodes
+        print(f"[SimulationState] >>> Cached {len(self._cached_nodes)} nodes")
         self._cached_edges = edges
-        
+        print(f"[SimulationState] >>> Cached {len(self._cached_edges)} edges")
+
+        print("[SimulationState] >>> Resetting tick count...")
         self.simulation_tick_count = 0
+        print("[SimulationState] 🟢 Setting simulation_running = True")
         self.simulation_running = True
+        print("[SimulationState] >>> Showing toast...")
         self._show_toast(f"🚀 Simulation started! Updates every {self.simulation_speed}s", "success")
+        print("[SimulationState] >>> EXIT: start_simulation completed successfully")
     
     @rx.event
     def stop_simulation(self):
@@ -123,6 +139,15 @@ class SimulationState(rx.State):
         self.simulation_running = False
         self.current_sensor_values = []
         self.latest_alert_equipment = ""
+
+        # Stop blinking in 3D model
+        yield rx.call_script("""
+            var bridge = document.getElementById('alert-equipment-bridge');
+            if (bridge) {
+                bridge.dispatchEvent(new Event('stopBlinking'));
+            }
+        """)
+
         self._show_toast("Simulation stopped", "info")
     
     @rx.event
@@ -130,6 +155,7 @@ class SimulationState(rx.State):
         """Process one simulation tick - called by JavaScript interval."""
         if not self.simulation_running:
             return
+        print(f"[SimulationState] 🔄 Tick {self.simulation_tick_count + 1} processing...")
         
         nodes = getattr(self, '_cached_nodes', [])
         edges = getattr(self, '_cached_edges', [])
@@ -147,7 +173,8 @@ class SimulationState(rx.State):
         print(f"[Simulation] Tick {tick}: {len(sensor_data_list)} sensors")
         
         # Evaluate workflow and trigger actions
-        await self._evaluate_and_trigger(nodes, edges, sensor_data_dict, tick)
+        async for _ in self._evaluate_and_trigger(nodes, edges, sensor_data_dict, tick):
+            pass  # Process all yielded events
     
     def _generate_sensor_data(self, nodes: List[Dict], tick: int):
         """Generate simulated sensor data based on configured nodes."""
@@ -244,9 +271,17 @@ class SimulationState(rx.State):
             if triggered:
                 specific_id = node['data'].get('config', {}).get('specific_equipment_id')
                 if specific_id:
+                    # Dispatch custom event to 3D bridge (non-reactive, no re-renders)
+                    script = f"""
+                        var bridge = document.getElementById('alert-equipment-bridge');
+                        if (bridge) {{
+                            var event = new CustomEvent('nexusAlert', {{ detail: '{specific_id}' }});
+                            bridge.dispatchEvent(event);
+                        }}
+                    """
+                    yield rx.call_script(script)
+                    # Also update state variable for reference
                     self.latest_alert_equipment = specific_id
-                    # Update MonitorState mirror for 3D visual alerts
-                    await self._update_monitor_alert(specific_id)
 
                 connected_ids = adjacency.get(node['id'], [])
 
@@ -257,15 +292,6 @@ class SimulationState(rx.State):
                             node, action_node, current_value, threshold, sensor_type
                         )
     
-    async def _update_monitor_alert(self, equipment_id: str):
-        """Update MonitorState with the latest alert for 3D visualization."""
-        try:
-            from app.states.monitor_state import MonitorState
-            monitor_state = await self.get_state(MonitorState)
-            monitor_state.alert_equipment_mirror = equipment_id
-        except Exception as e:
-            print(f"[SimulationState] Error updating monitor alert: {e}")
-
     async def _execute_action(self, trigger_node: Dict, action_node: Dict,
                              value: float, threshold: float, sensor_type: str):
         """Execute an action node (send notification)."""
@@ -351,18 +377,30 @@ class SimulationState(rx.State):
             "error" if severity == "critical" else "warning"
         )
         
-        # Log to database
-        try:
-            from app.services.database import db
-            db.log_alert(
-                workflow_id=getattr(self, '_current_workflow_id', ''),
-                action_type=action_type,
-                recipient=recipient,
-                message=alert_content['text'],
-                status='sent' if (result and result.success) else 'failed'
-            )
-        except Exception as e:
-            print(f"Error logging alert: {e}")
+        # TEMPORARILY DISABLED: Testing if DB logging causes reloads
+        # Log to database (in background to avoid triggering file watcher)
+        # try:
+        #     import threading
+        #     from app.services.database import db
+
+        #     def log_in_background():
+        #         try:
+        #             db.log_alert(
+        #                 workflow_id=getattr(self, '_current_workflow_id', ''),
+        #                 action_type=action_type,
+        #                 recipient=recipient,
+        #                 message=alert_content['text'],
+        #                 status='sent' if (result and result.success) else 'failed'
+        #             )
+        #         except Exception as e:
+        #             print(f"Error logging alert to DB: {e}")
+
+        #     # Run in daemon thread to avoid blocking
+        #     thread = threading.Thread(target=log_in_background, daemon=True)
+        #     thread.start()
+        # except Exception as e:
+        #     print(f"Error starting log thread: {e}")
+        print(f"[DB LOGGING DISABLED] Would have logged: {action_type} alert to {recipient}")
     
     @rx.event
     async def trigger_manual_alert(self):

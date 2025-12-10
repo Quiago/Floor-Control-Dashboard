@@ -119,8 +119,12 @@ class DatabaseService:
     def save_workflow(self, workflow_id: str, name: str, description: str,
                       nodes: List[Dict], edges: List[Dict], status: str = 'draft') -> bool:
         """Save or update a workflow."""
+        print(f"[Database.save_workflow] >>> ENTRY: id={workflow_id}")
+        print("[Database.save_workflow] >>> Getting connection...")
         with self._get_connection() as conn:
+            print("[Database.save_workflow] >>> Connection acquired")
             cursor = conn.cursor()
+            print("[Database.save_workflow] >>> Executing INSERT/UPDATE query...")
             cursor.execute("""
                 INSERT INTO workflows (id, name, description, nodes_json, edges_json, status, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -140,6 +144,9 @@ class DatabaseService:
                 status,
                 datetime.now().isoformat()
             ))
+            print("[Database.save_workflow] >>> Query executed, committing...")
+        print("[Database.save_workflow] >>> Connection closed (auto-commit)")
+        print("[Database.save_workflow] >>> EXIT: success=True")
         return True
     
     def get_workflow(self, workflow_id: str) -> Optional[Dict]:

@@ -19,10 +19,6 @@ class MonitorState(rx.State):
     # === JS COMMANDS (Python → JavaScript) ===
     js_command: str = ""
 
-    # === ALERT BRIDGE ===
-    # This mirrors the latest alert from SimulationState for the 3D model
-    alert_equipment_mirror: str = ""
-    
     # === EQUIPMENT PROPERTIES ===
     equipment_temp: float = 0.0
     equipment_pressure: float = 0.0

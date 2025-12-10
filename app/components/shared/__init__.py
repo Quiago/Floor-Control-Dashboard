@@ -112,13 +112,22 @@ def form_field(
             class_name="text-xs text-slate-300 font-bold uppercase tracking-wider"
         ),
         input_component,
-        rx.cond(
-            error != "",
-            rx.text(error, class_name="text-[10px] text-red-400"),
-            rx.cond(
-                helper is not None,
-                rx.text(helper, class_name="text-[10px] text-slate-500"),
-                rx.fragment()
+        # Error message (always rendered, hidden with CSS)
+        rx.text(
+            error,
+            class_name=rx.cond(
+                error != "",
+                "text-[10px] text-red-400",
+                "text-[10px] text-red-400 hidden"
+            )
+        ),
+        # Helper text (always rendered, hidden with CSS)
+        rx.text(
+            helper if helper is not None else "",
+            class_name=rx.cond(
+                (helper is not None) & (error == ""),
+                "text-[10px] text-slate-500",
+                "text-[10px] text-slate-500 hidden"
             )
         ),
         spacing="1",

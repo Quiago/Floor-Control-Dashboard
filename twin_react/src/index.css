@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* === CUSTOM SCROLLBAR === */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 20, 25, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.8);
+}
+
+/* === ROOT STYLES === */
+:root {
+  --bg-primary: #0f1419;
+  --bg-surface: #1a2332;
+  --bg-elevated: #243044;
+  --accent-blue: #3b82f6;
+  --accent-success: #22c55e;
+  --accent-warning: #f97316;
+  --accent-danger: #ef4444;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-primary);
+  color: #f1f5f9;
+}
+
+/* === GLASS PANELS === */
+.glass-panel {
+  @apply backdrop-blur-xl bg-gradient-to-br from-slate-800/70 to-slate-900/80 border border-slate-600/30;
+}
+
+.glass-panel-premium {
+  @apply backdrop-blur-2xl bg-gradient-to-br from-slate-800/85 to-slate-950/95 border border-slate-500/40 shadow-2xl shadow-black/50;
+}
+
+.glass-strong {
+  @apply backdrop-blur-2xl bg-gradient-to-br from-slate-800/80 to-slate-900/90 border border-slate-500/30 shadow-2xl shadow-black/40;
+}
+
+.glass-card {
+  @apply backdrop-blur-xl bg-slate-800/60 border border-slate-600/40 shadow-lg shadow-black/20;
+}
+
+/* === INPUT STYLES === */
+.input-field {
+  @apply bg-slate-800/90 border border-slate-500/50 text-white placeholder-slate-400 
+         focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 
+         hover:border-slate-400/50 transition-colors rounded-lg px-3 py-2;
+}
+
+/* === GRADIENTS === */
+.gradient-primary {
+  @apply bg-gradient-to-r from-blue-600 to-cyan-600;
+}
+
+.gradient-success {
+  @apply bg-gradient-to-r from-green-600 to-emerald-600;
+}
+
+.gradient-warning {
+  @apply bg-gradient-to-r from-orange-500 to-amber-500;
+}
+
+.gradient-danger {
+  @apply bg-gradient-to-r from-red-600 to-rose-600;
+}
+
+/* === SEPARATOR === */
+.separator-gradient {
+  @apply h-px w-full bg-gradient-to-r from-transparent via-slate-500/30 to-transparent;
+}
+
+/* === TRANSITIONS === */
+.transition-default {
+  @apply transition-all duration-200 ease-out;
+}
+
+/* === MODEL VIEWER === */
+model-viewer {
+  width: 100%;
+  height: 100%;
+  min-height: 500px;
+  display: block;
+  background: var(--bg-primary);
+}
+
+/* === REACTFLOW OVERRIDES === */
+.react-flow__node {
+  cursor: pointer;
+}
+
+.react-flow__edge-path {
+  stroke: #3b82f6 !important;
+  stroke-width: 2px !important;
+}
+
+.react-flow__controls {
+  @apply glass-panel rounded-lg !important;
+}
+
+.react-flow__controls button {
+  @apply bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 !important;
+}
+
+/* === ANIMATIONS === */
+@keyframes flash-alert {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.animate-flash {
+  animation: flash-alert 0.5s ease-in-out;
+}

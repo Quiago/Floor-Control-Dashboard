@@ -1,6 +1,13 @@
 # Exclude database files from hot reload
 data/
+data/*
+data/**/*
+*.db
 *.db-journal
 *.db-shm
 *.db-wal
 reflex.db*
+**/*.db
+**/*.db-journal
+**/*.db-shm
+**/*.db-wal

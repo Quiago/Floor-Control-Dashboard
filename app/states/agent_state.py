@@ -201,19 +201,28 @@ class AgentState(rx.State):
     @rx.event
     async def approve_workflow(self):
         """Approve workflow, save to DB, and start simulation."""
+        print("[AgentState.approve_workflow] >>> ENTRY")
+
         if not self.pending_workflow:
+            print("[AgentState.approve_workflow] >>> EXIT: no pending workflow")
             return
 
+        print("[AgentState.approve_workflow] >>> Setting is_thinking=True...")
         self.is_thinking = True
+        print("[AgentState.approve_workflow] >>> YIELD 1")
         yield
 
         try:
+            print("[AgentState.approve_workflow] >>> Importing services...")
             from app.services.workflow_service import workflow_service
             from app.states.simulation_state import SimulationState
 
+            print("[AgentState.approve_workflow] >>> Creating workflow from spec...")
             # Create workflow using shared service
             result = workflow_service.create_workflow_from_spec(self.pending_workflow)
+            print(f"[AgentState.approve_workflow] >>> Workflow created: {result['workflow_id']}")
 
+            print("[AgentState.approve_workflow] >>> Saving to database...")
             # Save to database
             success = workflow_service.save_workflow(
                 result["workflow_id"],
@@ -222,9 +231,11 @@ class AgentState(rx.State):
                 result["edges"],
                 status="active"
             )
+            print(f"[AgentState.approve_workflow] >>> Save result: {success}")
 
             if success:
                 workflow_name = self.pending_workflow.get("name", "New Workflow")
+                print(f"[AgentState.approve_workflow] >>> Adding success message for '{workflow_name}'...")
 
                 self._add_message(
                     f"✅ **Workflow '{workflow_name}' created and activated!**\n\n"
@@ -233,18 +244,26 @@ class AgentState(rx.State):
                     "assistant"
                 )
 
+                print("[AgentState.approve_workflow] >>> Clearing pending workflow...")
                 self.pending_workflow = None
                 self.awaiting_approval = False
 
+                print(f"[AgentState] 📝 About to start simulation with {len(result['nodes'])} nodes")
+                print("[AgentState.approve_workflow] >>> YIELD 2 (before simulation)")
                 yield
 
                 # Direct state-to-state call (like the UI does)
                 # Get the SimulationState instance and call start_simulation
+                print("[AgentState] 🔄 Getting SimulationState instance...")
                 sim_state = await self.get_state(SimulationState)
+                print(f"[AgentState] >>> Got SimulationState: {type(sim_state)}")
+
+                print("[AgentState] 🚀 Calling start_simulation...")
                 sim_state.start_simulation(
                     nodes=result["nodes"],
                     edges=result["edges"]
                 )
+                print("[AgentState] >>> start_simulation() returned")
 
                 print(f"[AgentState] ✓ Simulation started with {len(result['nodes'])} nodes, {len(result['edges'])} edges")
             else:

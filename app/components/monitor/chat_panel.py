@@ -37,18 +37,22 @@ def chat_panel() -> rx.Component:
             rx.vstack(
                 rx.foreach(AgentState.chat_history, chat_message),
                 
-                # Thinking indicator
-                rx.cond(
-                    AgentState.is_thinking,
-                    thinking_indicator(),
-                    rx.fragment()
+                # Thinking indicator (always rendered, hidden with CSS)
+                thinking_indicator(
+                    class_name=rx.cond(
+                        AgentState.is_thinking,
+                        "",
+                        "hidden"
+                    )
                 ),
-                
-                # Workflow approval buttons
-                rx.cond(
-                    AgentState.awaiting_approval,
-                    workflow_approval_buttons(),
-                    rx.fragment()
+
+                # Workflow approval buttons (always rendered, hidden with CSS)
+                workflow_approval_buttons(
+                    class_name=rx.cond(
+                        AgentState.awaiting_approval,
+                        "",
+                        "hidden"
+                    )
                 ),
                 
                 spacing="3",
@@ -141,7 +145,7 @@ def chat_message(msg: rx.Var[dict]) -> rx.Component:
     )
 
 
-def thinking_indicator() -> rx.Component:
+def thinking_indicator(class_name: str = "") -> rx.Component:
     """Animated thinking indicator."""
     return rx.hstack(
         rx.box(
@@ -157,11 +161,11 @@ def thinking_indicator() -> rx.Component:
         rx.text("Thinking...", class_name="text-xs text-slate-400"),
         spacing="3",
         align_items="center",
-        class_name="bg-slate-900/50 p-3 rounded-lg border border-blue-500/20"
+        class_name=f"bg-slate-900/50 p-3 rounded-lg border border-blue-500/20 {class_name}"
     )
 
 
-def workflow_approval_buttons() -> rx.Component:
+def workflow_approval_buttons(class_name: str = "") -> rx.Component:
     """Buttons for approving or rejecting a pending workflow."""
     return rx.hstack(
         rx.button(
@@ -187,5 +191,5 @@ def workflow_approval_buttons() -> rx.Component:
             class_name=TRANSITION_DEFAULT
         ),
         spacing="2",
-        class_name="p-3 bg-slate-800/50 rounded-lg border border-orange-500/30"
+        class_name=f"p-3 bg-slate-800/50 rounded-lg border border-orange-500/30 {class_name}"
     )

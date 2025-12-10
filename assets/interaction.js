@@ -246,11 +246,9 @@ function initializeModelViewer() {
 
     setupSmartRaycaster(viewer);
     setupCommandListener(viewer);
-    setupAlertEquipmentListener(viewer);
 
     log("✓ Raycaster ready");
     log("✓ Commands ready");
-    log("✓ Alert equipment listener ready");
 }
 
 // === CONTINUOUS CHECK FOR MODEL VIEWER (SPA NAVIGATION SUPPORT) ===

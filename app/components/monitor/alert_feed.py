@@ -7,7 +7,7 @@ from app.components.shared import section_label
 def alert_feed_panel() -> rx.Component:
     """Panel lateral derecho con stream de alertas"""
     return rx.vstack(
-        # Header
+        # Header (always render both badges, toggle with CSS)
         rx.hstack(
             rx.icon("activity", size=16, class_name="text-blue-500"),
             rx.text(
@@ -15,48 +15,80 @@ def alert_feed_panel() -> rx.Component:
                 class_name="text-xs font-bold text-gray-400 uppercase"
             ),
             rx.spacer(),
-            rx.cond(
-                SimulationState.simulation_running,
+            # Simulation ON badge + stop button (shown when running)
+            rx.hstack(
                 rx.badge("SIMULATION ON", color_scheme="green", variant="solid", size="1"),
-                rx.badge("MONITORING", color_scheme="gray", variant="outline", size="1")
+                rx.button(
+                    rx.icon("square", size=12),
+                    variant="ghost",
+                    color_scheme="red",
+                    size="1",
+                    on_click=SimulationState.stop_simulation,
+                    class_name="h-6 px-2"
+                ),
+                spacing="2",
+                class_name=rx.cond(
+                    SimulationState.simulation_running,
+                    "",
+                    "hidden"
+                )
+            ),
+            # MONITORING badge (shown when not running)
+            rx.badge(
+                "MONITORING",
+                color_scheme="gray",
+                variant="outline",
+                size="1",
+                class_name=rx.cond(
+                    SimulationState.simulation_running,
+                    "hidden",
+                    ""
+                )
             ),
             class_name="w-full p-3 border-b border-gray-800 bg-gray-900/50 items-center"
         ),
         
-        # Sensor Data (only when simulation running)
-        rx.cond(
-            SimulationState.simulation_running,
+        # Sensor Data (always rendered, hidden with CSS to maintain hook order)
+        rx.vstack(
+            section_label("Real-Time Sensors"),
             rx.vstack(
-                section_label("Real-Time Sensors"),
-                rx.vstack(
-                    rx.foreach(SimulationState.current_sensor_values, sensor_value_row),
-                    class_name="w-full space-y-2 p-2 max-h-[120px] overflow-y-auto"
-                ),
-                class_name="w-full border-b border-gray-800/50"
+                rx.foreach(SimulationState.current_sensor_values, sensor_value_row),
+                class_name="w-full space-y-2 p-2 max-h-[120px] overflow-y-auto"
             ),
-            rx.fragment()
+            class_name=rx.cond(
+                SimulationState.simulation_running,
+                "w-full border-b border-gray-800/50",
+                "w-full border-b border-gray-800/50 hidden"
+            )
         ),
         
-        # Alert Stream
+        # Alert Stream (always render both, toggle visibility with CSS)
         rx.vstack(
             section_label("Alert Stream"),
-            rx.cond(
-                SimulationState.alert_feed.length() > 0,
-                rx.vstack(
-                    rx.foreach(
-                        SimulationState.alert_feed,
-                        alert_item
-                    ),
-                    id="alert-stream",
-                    class_name="flex-1 overflow-y-auto w-full p-2 space-y-1 max-h-[calc(100vh-400px)]"
+            # Alert list (shown when there are alerts)
+            rx.vstack(
+                rx.foreach(
+                    SimulationState.alert_feed,
+                    alert_item
                 ),
-                rx.vstack(
-                    rx.icon("bell-off", size=24, class_name="text-gray-600"),
-                    rx.text("No alerts yet", class_name="text-xs text-gray-500"),
-                    rx.text("Alerts appear when thresholds exceeded", class_name="text-[10px] text-gray-600"),
-                    spacing="2",
-                    align_items="center",
-                    class_name="py-8"
+                id="alert-stream",
+                class_name=rx.cond(
+                    SimulationState.alert_feed.length() > 0,
+                    "flex-1 overflow-y-auto w-full p-2 space-y-1 max-h-[calc(100vh-400px)]",
+                    "flex-1 overflow-y-auto w-full p-2 space-y-1 max-h-[calc(100vh-400px)] hidden"
+                )
+            ),
+            # Empty state (shown when no alerts)
+            rx.vstack(
+                rx.icon("bell-off", size=24, class_name="text-gray-600"),
+                rx.text("No alerts yet", class_name="text-xs text-gray-500"),
+                rx.text("Alerts appear when thresholds exceeded", class_name="text-[10px] text-gray-600"),
+                spacing="2",
+                align_items="center",
+                class_name=rx.cond(
+                    SimulationState.alert_feed.length() > 0,
+                    "py-8 hidden",
+                    "py-8"
                 )
             ),
             width="100%",

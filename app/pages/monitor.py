@@ -12,6 +12,7 @@ from app.components.monitor.alert_feed import alert_feed_panel
 from app.components.monitor.chat_panel import chat_panel
 from app.components.shared.design_tokens import COLORS
 from app.components.shared.simulation_controller import simulation_controller
+from app.components.shared.state_bridge import state_bridge
 
 def monitor_header() -> rx.Component:
     """Header with navigation and simulation status"""
@@ -23,20 +24,18 @@ def monitor_header() -> rx.Component:
             align_items="center"
         ),
         rx.spacer(),
-        # Simulation status indicator
-        rx.cond(
-            SimulationState.simulation_running,
-            rx.badge(
-                rx.hstack(
-                    rx.box(class_name="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"),
-                    rx.text(f"SIMULATION ACTIVE • Tick #{SimulationState.simulation_tick_count}"),
-                    spacing="2"
-                ),
-                color_scheme="green",
-                variant="solid",
-                size="1"
+        # Simulation status indicator (visibility controlled by JS)
+        rx.badge(
+            rx.hstack(
+                rx.box(class_name="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"),
+                rx.text(f"SIMULATION ACTIVE • Tick #{SimulationState.simulation_tick_count}"),
+                spacing="2"
             ),
-            rx.fragment()
+            id="sim-status-active",
+            color_scheme="green",
+            variant="solid",
+            size="1",
+            class_name="hidden"  # JS will toggle this
         ),
         rx.button(
             rx.hstack(

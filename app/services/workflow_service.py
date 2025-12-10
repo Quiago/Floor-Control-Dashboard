@@ -185,20 +185,23 @@ class WorkflowService:
     def save_workflow(self, workflow_id: str, name: str, nodes: List[Dict],
                       edges: List[Dict], status: str = "active") -> bool:
         """Save workflow to database.
-        
+
         Args:
             workflow_id: Unique workflow ID
             name: Workflow name
             nodes: List of nodes
             edges: List of edges
             status: Workflow status (draft, active, paused)
-        
+
         Returns:
             True if successful
         """
+        print(f"[WorkflowService.save_workflow] >>> ENTRY: id={workflow_id}, name={name}")
         try:
+            print("[WorkflowService.save_workflow] >>> Importing db...")
             from app.services.database import db
-            
+
+            print("[WorkflowService.save_workflow] >>> Calling db.save_workflow()...")
             db.save_workflow(
                 workflow_id=workflow_id,
                 name=name,
@@ -207,9 +210,12 @@ class WorkflowService:
                 edges=edges,
                 status=status
             )
+            print("[WorkflowService.save_workflow] >>> db.save_workflow() returned")
+            print("[WorkflowService.save_workflow] >>> EXIT: success=True")
             return True
         except Exception as e:
-            print(f"Error saving workflow: {e}")
+            print(f"[WorkflowService.save_workflow] !!! ERROR: {e}")
+            print(f"[WorkflowService.save_workflow] >>> EXIT: success=False")
             return False
     
     def load_workflow(self, workflow_id: str) -> Optional[Dict]:

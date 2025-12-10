@@ -8,39 +8,48 @@ from app.components.shared.design_tokens import (
 from app.components.shared import gradient_separator, icon_button, section_label
 
 def floating_context_menu() -> rx.Component:
-    """Menú flotante inferior derecha con props y acciones"""
-    return rx.cond(
-        MonitorState.selected_object_name != "",
-        rx.vstack(
-            # HEADER
-            rx.hstack(
-                rx.icon("box", size=16, class_name="text-orange-400"),
-                rx.text(
-                    MonitorState.selected_object_name,
-                    class_name="font-bold text-white text-sm truncate"
-                ),
-                rx.spacer(),
-                icon_button("x", on_click=MonitorState.clear_selection, size=14),
-                width="100%",
-                align_items="center"
+    """Menú flotante inferior derecha con props y acciones - always rendered, hidden with CSS"""
+    return rx.vstack(
+        # HEADER
+        rx.hstack(
+            rx.icon("box", size=16, class_name="text-orange-400"),
+            rx.text(
+                MonitorState.selected_object_name,
+                class_name="font-bold text-white text-sm truncate"
             ),
-            
-            gradient_separator(),
-            
-            # TABS: Main / Actions
-            rx.cond(
-                MonitorState.menu_mode == "main",
-                properties_view(),
-                actions_view()
-            ),
-            
-            spacing="3",
-            class_name=f"{GLASS_PANEL_PREMIUM} absolute bottom-6 right-6 p-4 rounded-xl {SHADOW_XL} z-50 w-80 max-w-[90vw]"
+            rx.spacer(),
+            icon_button("x", on_click=MonitorState.clear_selection, size=14),
+            width="100%",
+            align_items="center"
         ),
-        rx.fragment()
+
+        gradient_separator(),
+
+        # TABS: Main / Actions (both rendered, one hidden)
+        properties_view(
+            class_name=rx.cond(
+                MonitorState.menu_mode == "main",
+                "",
+                "hidden"
+            )
+        ),
+        actions_view(
+            class_name=rx.cond(
+                MonitorState.menu_mode == "main",
+                "hidden",
+                ""
+            )
+        ),
+
+        spacing="3",
+        class_name=rx.cond(
+            MonitorState.selected_object_name != "",
+            f"{GLASS_PANEL_PREMIUM} absolute bottom-6 right-6 p-4 rounded-xl {SHADOW_XL} z-50 w-80 max-w-[90vw]",
+            f"{GLASS_PANEL_PREMIUM} absolute bottom-6 right-6 p-4 rounded-xl {SHADOW_XL} z-50 w-80 max-w-[90vw] hidden"
+        )
     )
 
-def properties_view() -> rx.Component:
+def properties_view(class_name: str = "") -> rx.Component:
     """Vista de propiedades del equipo"""
     return rx.vstack(
         # Stats Grid
@@ -118,10 +127,11 @@ def properties_view() -> rx.Component:
         ),
         
         spacing="3",
-        width="100%"
+        width="100%",
+        class_name=class_name
     )
 
-def actions_view() -> rx.Component:
+def actions_view(class_name: str = "") -> rx.Component:
     """Vista de acciones rápidas"""
     return rx.vstack(
         section_label("ACTIONS"),
@@ -183,7 +193,8 @@ def actions_view() -> rx.Component:
             width="100%",
             on_click=MonitorState.set_menu_mode("main")
         ),
-        
+
         width="100%",
-        spacing="3"
+        spacing="3",
+        class_name=class_name
     )

@@ -8,10 +8,8 @@ from app.components.shared.design_tokens import (
 from app.components.shared import gradient_separator, section_label, dependency_node
 
 def knowledge_graph_panel() -> rx.Component:
-    """Left expandable panel with RUL + interactive dependency graph"""
-    return rx.cond(
-        MonitorState.is_expanded,
-        rx.vstack(
+    """Left expandable panel with RUL + interactive dependency graph - always rendered, hidden with CSS"""
+    return rx.vstack(
             # Header
             rx.hstack(
                 rx.icon("network", class_name="text-blue-400"),
@@ -101,10 +99,12 @@ def knowledge_graph_panel() -> rx.Component:
             ),
             
             spacing="4",
-            class_name=f"{GLASS_PANEL_PREMIUM} absolute top-4 left-4 bottom-16 w-80 lg:w-96 max-w-[90vw] p-4 rounded-xl {SHADOW_XL} z-40 overflow-y-auto"
-        ),
-        rx.fragment()
-    )
+            class_name=rx.cond(
+                MonitorState.is_expanded,
+                f"{GLASS_PANEL_PREMIUM} absolute top-4 left-4 bottom-16 w-80 lg:w-96 max-w-[90vw] p-4 rounded-xl {SHADOW_XL} z-40 overflow-y-auto",
+                f"{GLASS_PANEL_PREMIUM} absolute top-4 left-4 bottom-16 w-80 lg:w-96 max-w-[90vw] p-4 rounded-xl {SHADOW_XL} z-40 overflow-y-auto hidden"
+            )
+        )
 
 def dependency_graph_visualization() -> rx.Component:
     """Interactive dependency graph visualization"""

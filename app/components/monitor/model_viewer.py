@@ -27,7 +27,16 @@ def model_viewer_3d() -> rx.Component:
             read_only=True,
             value=MonitorState.js_command
         ),
-        
+
+        # 2.5 ALERT EQUIPMENT: Python → JS (equipment ID for visual alerts)
+        rx.el.input(
+            id="alert-equipment-input",
+            class_name="hidden",
+            read_only=True,
+            value=MonitorState.alert_equipment_mirror,
+            data_alert_equipment=MonitorState.alert_equipment_mirror
+        ),
+
         # 3. MODELO 3D
         rx.html(f"""
             <model-viewer

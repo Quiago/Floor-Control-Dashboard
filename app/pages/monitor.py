@@ -3,6 +3,7 @@
 import reflex as rx
 from app.states.monitor_state import MonitorState
 from app.states.workflow_state import WorkflowState
+from app.states.simulation_state import SimulationState
 from app.components.monitor.model_viewer import model_viewer_3d
 from app.components.monitor.context_menu import floating_context_menu
 from app.components.monitor.knowledge_graph import knowledge_graph_panel
@@ -10,9 +11,10 @@ from app.components.monitor.sensor_dashboard import live_sensor_dashboard
 from app.components.monitor.alert_feed import alert_feed_panel
 from app.components.monitor.chat_panel import chat_panel
 from app.components.shared.design_tokens import COLORS
+from app.components.shared.simulation_controller import simulation_controller
 
 def monitor_header() -> rx.Component:
-    """Header with navigation"""
+    """Header with navigation and simulation status"""
     return rx.hstack(
         rx.hstack(
             rx.icon("activity", size=24, class_name="text-blue-400"),
@@ -21,6 +23,21 @@ def monitor_header() -> rx.Component:
             align_items="center"
         ),
         rx.spacer(),
+        # Simulation status indicator
+        rx.cond(
+            SimulationState.simulation_running,
+            rx.badge(
+                rx.hstack(
+                    rx.box(class_name="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"),
+                    rx.text(f"SIMULATION ACTIVE • Tick #{SimulationState.simulation_tick_count}"),
+                    spacing="2"
+                ),
+                color_scheme="green",
+                variant="solid",
+                size="1"
+            ),
+            rx.fragment()
+        ),
         rx.button(
             rx.hstack(
                 rx.icon("workflow", size=16),
@@ -32,12 +49,16 @@ def monitor_header() -> rx.Component:
             on_click=rx.redirect("/workflow-builder"),
         ),
         class_name="w-full px-4 py-3 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-sm",
-        align_items="center"
+        align_items="center",
+        spacing="3"
     )
 
 def monitor_page() -> rx.Component:
     """Monitor Page - Vista principal"""
     return rx.box(
+        # Simulation controller (ticker + state elements)
+        simulation_controller(),
+        
         rx.vstack(
             monitor_header(),
             

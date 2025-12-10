@@ -1,7 +1,7 @@
 # app/components/monitor/alert_feed.py
-"""Feed de alertas en tiempo real"""
+"""Feed de alertas en tiempo real - Uses isolated SimulationState"""
 import reflex as rx
-from app.states.workflow_state import WorkflowState
+from app.states.simulation_state import SimulationState
 from app.components.shared import section_label
 
 def alert_feed_panel() -> rx.Component:
@@ -16,22 +16,48 @@ def alert_feed_panel() -> rx.Component:
             ),
             rx.spacer(),
             rx.cond(
-                WorkflowState.simulation_running,
+                SimulationState.simulation_running,
                 rx.badge("SIMULATION ON", color_scheme="green", variant="solid", size="1"),
                 rx.badge("MONITORING", color_scheme="gray", variant="outline", size="1")
             ),
             class_name="w-full p-3 border-b border-gray-800 bg-gray-900/50 items-center"
         ),
         
+        # Sensor Data (only when simulation running)
+        rx.cond(
+            SimulationState.simulation_running,
+            rx.vstack(
+                section_label("Real-Time Sensors"),
+                rx.vstack(
+                    rx.foreach(SimulationState.current_sensor_values, sensor_value_row),
+                    class_name="w-full space-y-2 p-2 max-h-[120px] overflow-y-auto"
+                ),
+                class_name="w-full border-b border-gray-800/50"
+            ),
+            rx.fragment()
+        ),
+        
         # Alert Stream
         rx.vstack(
             section_label("Alert Stream"),
-            rx.vstack(
-                rx.foreach(
-                    WorkflowState.alert_feed,
-                    alert_item
+            rx.cond(
+                SimulationState.alert_feed.length() > 0,
+                rx.vstack(
+                    rx.foreach(
+                        SimulationState.alert_feed,
+                        alert_item
+                    ),
+                    id="alert-stream",
+                    class_name="flex-1 overflow-y-auto w-full p-2 space-y-1 max-h-[calc(100vh-400px)]"
                 ),
-                class_name="flex-1 overflow-y-auto w-full p-2 space-y-1 max-h-[calc(100vh-400px)]"
+                rx.vstack(
+                    rx.icon("bell-off", size=24, class_name="text-gray-600"),
+                    rx.text("No alerts yet", class_name="text-xs text-gray-500"),
+                    rx.text("Alerts appear when thresholds exceeded", class_name="text-[10px] text-gray-600"),
+                    spacing="2",
+                    align_items="center",
+                    class_name="py-8"
+                )
             ),
             width="100%",
             spacing="2"
@@ -39,6 +65,62 @@ def alert_feed_panel() -> rx.Component:
         
         class_name="w-full h-full bg-gray-900 rounded-lg border border-gray-800 overflow-hidden"
     )
+
+
+def sensor_value_row(item: rx.Var[dict]) -> rx.Component:
+    """Row showing a single sensor value with dynamic styling."""
+    return rx.hstack(
+        # Equipment & sensor
+        rx.vstack(
+            rx.text(item['equipment'], class_name="text-[10px] text-gray-500 truncate"),
+            rx.text(item['key'], class_name="text-xs font-medium text-gray-300 uppercase"),
+            spacing="0",
+            align_items="start",
+            class_name="w-24 shrink-0"
+        ),
+        
+        # Value with conditional styling
+        rx.text(
+            item['value'],
+            class_name=rx.cond(
+                item['is_alert'],
+                "text-lg font-bold text-rose-400 font-mono w-16 text-right animate-pulse",
+                "text-lg font-bold text-white font-mono w-16 text-right"
+            )
+        ),
+        
+        # Progress bar
+        rx.box(
+            rx.box(
+                class_name=rx.cond(
+                    item['status'] == 'alert',
+                    "h-full bg-rose-500 rounded-full transition-all",
+                    rx.cond(
+                        item['status'] == 'warning',
+                        "h-full bg-amber-500 rounded-full transition-all",
+                        "h-full bg-emerald-500 rounded-full transition-all"
+                    )
+                ),
+                style={"width": item['progress_pct'].to_string() + "%"}
+            ),
+            class_name="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden"
+        ),
+        
+        # Threshold value
+        rx.text(
+            item['threshold'],
+            class_name="text-xs text-amber-400/80 font-mono w-12 text-right shrink-0"
+        ),
+        
+        spacing="3",
+        align_items="center",
+        class_name=rx.cond(
+            item['is_alert'],
+            "w-full p-2 rounded bg-rose-900/30 border border-rose-500/30 animate-pulse",
+            "w-full p-2 rounded bg-gray-800/30 hover:bg-gray-800/50"
+        )
+    )
+
 
 def alert_item(alert: rx.Var[dict]) -> rx.Component:
     """Item individual de alerta"""

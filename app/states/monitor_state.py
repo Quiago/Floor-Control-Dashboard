@@ -7,17 +7,21 @@ import datetime
 
 class MonitorState(rx.State):
     """Estado del Monitor (separado de WorkflowState)"""
-    
+
     # === 3D SELECTION ===
     selected_object_name: str = ""
-    
+
     # === UI MODES ===
     menu_mode: str = "main"  # main, actions
     is_expanded: bool = False
     is_alert_active: bool = False
-    
+
     # === JS COMMANDS (Python → JavaScript) ===
     js_command: str = ""
+
+    # === ALERT BRIDGE ===
+    # This mirrors the latest alert from SimulationState for the 3D model
+    alert_equipment_mirror: str = ""
     
     # === EQUIPMENT PROPERTIES ===
     equipment_temp: float = 0.0

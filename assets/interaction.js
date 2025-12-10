@@ -124,26 +124,55 @@ function flashMesh(mesh, colorHex, duration) {
 // === COMMAND LISTENER (PYTHON -> JS) ===
 function setupCommandListener(viewer) {
     const commandInput = document.getElementById('command-input');
-    
+
     if (!commandInput) {
         error("Command input not found: #command-input");
         return;
     }
-    
+
     // Check if already has listener to avoid duplicates
     if (commandInput._hasListener) {
         log("Command listener already setup, skipping");
         return;
     }
-    
+
     commandInput._hasListener = true;
     let lastCommand = "";
-    
+
     setInterval(() => {
         const currentCommand = commandInput.value;
         if (currentCommand && currentCommand !== lastCommand) {
             lastCommand = currentCommand;
             handleCommand(currentCommand, viewer);
+        }
+    }, 200);
+}
+
+// === ALERT EQUIPMENT LISTENER (PYTHON -> JS) ===
+function setupAlertEquipmentListener(viewer) {
+    const alertInput = document.getElementById('alert-equipment-input');
+
+    if (!alertInput) {
+        error("Alert equipment input not found: #alert-equipment-input");
+        return;
+    }
+
+    // Check if already has listener to avoid duplicates
+    if (alertInput._hasAlertListener) {
+        log("Alert equipment listener already setup, skipping");
+        return;
+    }
+
+    alertInput._hasAlertListener = true;
+    let lastAlertEquipment = "";
+
+    setInterval(() => {
+        const currentAlertEquipment = alertInput.value;
+        if (currentAlertEquipment && currentAlertEquipment !== lastAlertEquipment) {
+            lastAlertEquipment = currentAlertEquipment;
+            log(`🚨 Alert equipment detected: ${currentAlertEquipment}`);
+            // Trigger visual alert
+            handleCommand(`alert:${currentAlertEquipment}`, viewer);
         }
     }, 200);
 }
@@ -214,12 +243,14 @@ function initializeModelViewer() {
     log("Model Viewer found - initializing");
     globalModelViewer = viewer;
     isInitialized = true;
-    
+
     setupSmartRaycaster(viewer);
     setupCommandListener(viewer);
-    
+    setupAlertEquipmentListener(viewer);
+
     log("✓ Raycaster ready");
     log("✓ Commands ready");
+    log("✓ Alert equipment listener ready");
 }
 
 // === CONTINUOUS CHECK FOR MODEL VIEWER (SPA NAVIGATION SUPPORT) ===

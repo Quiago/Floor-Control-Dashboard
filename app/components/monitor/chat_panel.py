@@ -59,7 +59,7 @@ def chat_panel() -> rx.Component:
                 width="100%",
                 align_items="stretch"
             ),
-            class_name="flex-1 p-4 overflow-y-auto",
+            class_name="flex-1 p-4 overflow-y-auto min-h-0",
             id="chat-messages"
         ),
         
@@ -91,7 +91,7 @@ def chat_panel() -> rx.Component:
             class_name="p-3 border-t border-slate-700/50 w-full"
         ),
         
-        class_name=f"h-full {GLASS_PANEL_PREMIUM} rounded-xl overflow-hidden",
+        class_name=f"h-full {GLASS_PANEL_PREMIUM} rounded-xl overflow-hidden flex flex-col",
         width="100%"
     )
 
@@ -114,13 +114,15 @@ def chat_message(msg: rx.Var[dict]) -> rx.Component:
             ),
             
             # Message content
+            # NOTE: Using rx.text instead of rx.markdown to avoid React hooks order error
+            # rx.markdown uses useContext internally which breaks when used inside rx.foreach
             rx.vstack(
-                rx.markdown(
+                rx.text(
                     msg["content"],
                     class_name=rx.cond(
                         msg["role"] == "user",
-                        "text-sm text-slate-200 prose prose-invert prose-sm max-w-none",
-                        "text-sm text-slate-100 prose prose-invert prose-sm max-w-none prose-headings:text-blue-300"
+                        "text-sm text-slate-200 whitespace-pre-wrap",
+                        "text-sm text-slate-100 whitespace-pre-wrap"
                     )
                 ),
                 rx.text(
@@ -129,7 +131,7 @@ def chat_message(msg: rx.Var[dict]) -> rx.Component:
                 ),
                 spacing="1",
                 align_items="start",
-                class_name="flex-1"
+                class_name="flex-1 min-w-0"
             ),
             
             spacing="3",

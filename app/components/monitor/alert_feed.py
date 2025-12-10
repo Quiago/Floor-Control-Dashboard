@@ -53,7 +53,7 @@ def alert_feed_panel() -> rx.Component:
             section_label("Real-Time Sensors"),
             rx.vstack(
                 rx.foreach(SimulationState.current_sensor_values, sensor_value_row),
-                class_name="w-full space-y-2 p-2 max-h-[120px] overflow-y-auto"
+                class_name="w-full space-y-2 p-2 overflow-y-auto flex-shrink-0"
             ),
             class_name=rx.cond(
                 SimulationState.simulation_running,
@@ -74,8 +74,8 @@ def alert_feed_panel() -> rx.Component:
                 id="alert-stream",
                 class_name=rx.cond(
                     SimulationState.alert_feed.length() > 0,
-                    "flex-1 overflow-y-auto w-full p-2 space-y-1 max-h-[calc(100vh-400px)]",
-                    "flex-1 overflow-y-auto w-full p-2 space-y-1 max-h-[calc(100vh-400px)] hidden"
+                    "flex-1 overflow-y-auto w-full p-2 space-y-1 min-h-0",
+                    "flex-1 overflow-y-auto w-full p-2 space-y-1 min-h-0 hidden"
                 )
             ),
             # Empty state (shown when no alerts)
@@ -92,10 +92,11 @@ def alert_feed_panel() -> rx.Component:
                 )
             ),
             width="100%",
-            spacing="2"
+            spacing="2",
+            class_name="flex-1 min-h-0"
         ),
         
-        class_name="w-full h-full bg-gray-900 rounded-lg border border-gray-800 overflow-hidden"
+        class_name="w-full h-full bg-gray-900 rounded-lg border border-gray-800 overflow-hidden flex flex-col"
     )
 
 

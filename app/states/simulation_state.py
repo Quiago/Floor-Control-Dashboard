@@ -30,6 +30,8 @@ class SimulationState(rx.State):
     alert_feed: List[Dict] = []
     latest_alert_equipment: str = ""
     show_alert_feed: bool = True
+    alert_count: int = 0  # Counter for limiting alerts
+    max_alerts: int = 3  # Stop simulation after this many alerts
 
     # === TOAST ===
     toast_message: str = ""
@@ -127,6 +129,7 @@ class SimulationState(rx.State):
 
         print("[SimulationState] >>> Resetting tick count...")
         self.simulation_tick_count = 0
+        self.alert_count = 0  # Reset alert counter
         print("[SimulationState] 🟢 Setting simulation_running = True")
         self.simulation_running = True
         print("[SimulationState] >>> Showing toast...")
@@ -139,6 +142,7 @@ class SimulationState(rx.State):
         self.simulation_running = False
         self.current_sensor_values = []
         self.latest_alert_equipment = ""
+        self.alert_count = 0  # Reset counter on stop
 
         # Stop blinking in 3D model
         yield rx.call_script("""
@@ -370,7 +374,21 @@ class SimulationState(rx.State):
         
         self.alert_feed = [alert_entry, *self.alert_feed[:19]]
         
-        # Show toast
+        # Increment alert counter and check if we should stop
+        self.alert_count += 1
+        print(f"[SimulationState] Alert count: {self.alert_count}/{self.max_alerts}")
+        
+        if self.alert_count >= self.max_alerts:
+            # Auto-stop simulation after max alerts
+            print(f"[SimulationState] 🛑 Reached max alerts ({self.max_alerts}), stopping simulation")
+            self.simulation_running = False
+            self._show_toast(
+                f"✅ Simulation complete! Generated {self.max_alerts} alerts. Check the alert feed for details.",
+                "success"
+            )
+            return  # Don't show individual alert toast, show completion message instead
+        
+        # Show toast for individual alert
         emoji = "🔴" if severity == "critical" else "🟡"
         self._show_toast(
             f"{emoji} ALERT: {equipment_name} {sensor_type}={value} (>{threshold})",

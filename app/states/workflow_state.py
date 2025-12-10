@@ -650,18 +650,27 @@ class WorkflowState(rx.State):
     @rx.event
     def save_workflow(self):
         """Save the current workflow."""
+        print(f"[WorkflowState.save_workflow] >>> ENTRY")
+        print(f"[WorkflowState.save_workflow] >>> nodes count: {len(self.nodes)}")
+        print(f"[WorkflowState.save_workflow] >>> edges count: {len(self.edges)}")
+        print(f"[WorkflowState.save_workflow] >>> workflow_id: {self.current_workflow_id}")
+        print(f"[WorkflowState.save_workflow] >>> workflow_name: {self.current_workflow_name}")
+        
         if not self.nodes:
             self._show_toast("Nothing to save - add nodes first", "warning")
+            print("[WorkflowState.save_workflow] >>> EXIT: no nodes")
             return
         
         # GENERAR ID SI ES NUEVO (CORREGIDO)
         if not self.current_workflow_id:
             self.current_workflow_id = str(uuid.uuid4())
+            print(f"[WorkflowState.save_workflow] >>> Generated new ID: {self.current_workflow_id}")
             
         db = get_db()
         
         # USAR METODO CORRECTO save_workflow (CORREGIDO)
         try:
+            print("[WorkflowState.save_workflow] >>> Calling db.save_workflow...")
             db.save_workflow(
                 workflow_id=self.current_workflow_id,
                 name=self.current_workflow_name,
@@ -670,10 +679,16 @@ class WorkflowState(rx.State):
                 edges=self.edges,
                 status=self.current_workflow_status
             )
+            print("[WorkflowState.save_workflow] >>> db.save_workflow completed")
+            print(f"[WorkflowState.save_workflow] >>> After save - nodes count: {len(self.nodes)}")
             self._show_toast(f"Workflow '{self.current_workflow_name}' saved!", "success")
-            self._load_active_workflows()
+            # Skip _load_active_workflows to avoid potential state issues
+            # self._load_active_workflows()
+            print("[WorkflowState.save_workflow] >>> EXIT: success")
         except Exception as e:
-            print(f"Database error: {e}")
+            print(f"[WorkflowState.save_workflow] !!! ERROR: {e}")
+            import traceback
+            traceback.print_exc()
             self._show_toast("Failed to save workflow", "error")
     
     @rx.event

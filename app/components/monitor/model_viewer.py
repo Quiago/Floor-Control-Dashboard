@@ -111,7 +111,7 @@ def model_viewer_3d() -> rx.Component:
                 camera-controls 
                 autoplay 
                 shadow-intensity="1"
-                style="width: 100%; height: 100%; min-height: 500px; display: block; background: {COLORS["bg_primary"]};">
+                style="width: 100%; height: 100%; min-height: 200px; display: block; background: {COLORS["bg_primary"]};">
                 <div slot="poster" style="color: white; text-align: center; padding-top: 50%;">
                     Loading 3D Model...
                 </div>

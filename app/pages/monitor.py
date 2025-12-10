@@ -53,7 +53,7 @@ def monitor_header() -> rx.Component:
     )
 
 def monitor_page() -> rx.Component:
-    """Monitor Page - Vista principal"""
+    """Monitor Page - Vista principal (responsive layout)"""
     return rx.box(
         # Simulation controller (ticker + state elements)
         simulation_controller(),
@@ -61,37 +61,40 @@ def monitor_page() -> rx.Component:
         rx.vstack(
             monitor_header(),
             
-            # Main Layout
-            rx.grid(
-                # LEFT: 3D Model + Alert Feed
-                rx.grid(
-                    # 3D Model (60%)
+            # Main Content Area - Flexbox layout that fills remaining height
+            rx.hstack(
+                # LEFT COLUMN: 3D Model + Alert Feed (flex-1 to fill available space)
+                rx.vstack(
+                    # 3D Model (takes 60% of the left column height)
                     rx.box(
                         model_viewer_3d(),
                         floating_context_menu(),
                         knowledge_graph_panel(),
-                        class_name="w-full h-full relative"
+                        class_name="w-full relative flex-[6] min-h-0"
                     ),
                     
-                    # Bottom Panel (40%)
-                    alert_feed_panel(),
+                    # Bottom Panel - Alert Feed (takes 40% of the left column height)
+                    rx.box(
+                        alert_feed_panel(),
+                        class_name="w-full flex-[4] min-h-0 overflow-hidden"
+                    ),
                     
-                    rows="60% 40%",
-                    gap="4",
-                    height="100%"
+                    spacing="4",
+                    class_name="flex-[65] min-w-0 h-full"
                 ),
                 
-                # RIGHT: Chat Panel (35%)
-                chat_panel(),
+                # RIGHT COLUMN: Chat Panel (35% width)
+                rx.box(
+                    chat_panel(),
+                    class_name="flex-[35] min-w-0 h-full overflow-hidden"
+                ),
                 
-                grid_template_columns="65% 35%",
-                height="calc(100vh - 60px)",
-                gap="4",
-                class_name="p-4 w-full"
+                spacing="4",
+                class_name="flex-1 p-4 w-full min-h-0 overflow-hidden"
             ),
             
             spacing="0",
-            class_name=f"bg-[{COLORS['bg_primary']}] min-h-screen w-full"
+            class_name=f"bg-[{COLORS['bg_primary']}] h-screen w-screen overflow-hidden"
         ),
         on_mount=WorkflowState.load_equipment
     )
